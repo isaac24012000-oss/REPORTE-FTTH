@@ -1,0 +1,210 @@
+# 🚀 GUÍA DE INICIO RÁPIDO
+
+## ¿Qué tengo que hacer?
+
+Solo **2 pasos**:
+
+### PASO 1️⃣: Abrir la carpeta
+```
+C:\Users\USUARIO\Desktop\REPORTE FTTH
+```
+
+### PASO 2️⃣: Ejecutar el dashboard
+
+Elige **UNA** de estas opciones:
+
+---
+
+## ✅ Opción A: Doble Click (La más fácil)
+
+1. Abre la carpeta: `C:\Users\USUARIO\Desktop\REPORTE FTTH`
+2. **Doble click** en: `iniciar_dashboard.bat`
+3. ¡Listo! El navegador se abrirá automáticamente
+
+---
+
+## ✅ Opción B: Línea de Comando PowerShell
+
+1. Presiona: `Win + X` y selecciona **Windows PowerShell**
+2. Pega este comando y presiona Enter:
+```powershell
+cd "C:\Users\USUARIO\Desktop\REPORTE FTTH" ; python -m streamlit run dashboard.py
+```
+
+---
+
+## ✅ Opción C: Línea de Comando CMD
+
+1. Presiona: `Win + R` y escribe `cmd`, Enter
+2. Pega este comando y presiona Enter:
+```cmd
+cd C:\Users\USUARIO\Desktop\REPORTE FTTH && streamlit run dashboard.py
+```
+
+---
+
+## ✅ Opción D: Desde VS Code
+
+1. Abre VS Code
+2. Abre la carpeta: `C:\Users\USUARIO\Desktop\REPORTE FTTH`
+3. Abre terminal: `Ctrl + Ñ` o `Terminal > New Terminal`
+4. Ejecuta:
+```bash
+streamlit run dashboard.py
+```
+
+---
+
+## 🌐 ¿Dónde se abre el dashboard?
+
+Automáticamente en tu navegador:
+```
+http://localhost:8501
+```
+
+Si no se abre automáticamente, copia esa URL en tu navegador.
+
+---
+
+## 📊 ¿Qué voy a ver?
+
+Una página web con:
+
+✅ **4 Métricas principales** en la parte superior
+- Total de contactos
+- Agentes activos  
+- Período de datos
+- Teléfonos únicos
+
+✅ **Gráficos interactivos**
+- Línea de tendencia diaria
+- Barras mensuales
+- Top 10 agentes
+- Distribución de etiquetas
+
+✅ **Filtros personalizables**
+- Por agente
+- Por etiqueta
+- Por rango de fechas
+
+✅ **Tabla de datos completa**
+- Todos los 6589 registros
+- Búsqueda y ordenamiento
+- Desplazamiento vertical
+
+---
+
+## ⚠️ ¿Qué hacer si...?
+
+### No se abre el navegador
+- Abre manualmente: `http://localhost:8501`
+
+### Error: "Module not found: streamlit"
+```bash
+pip install streamlit
+```
+
+### Puerto 8501 en uso
+```bash
+streamlit run dashboard.py --server.port 8502
+```
+
+### Datos no actualizados
+```bash
+streamlit cache clear
+```
+
+### El dashboard está lento
+- Cierra otras aplicaciones
+- Reinicia: Presiona `Ctrl + C` en la terminal y vuelve a ejecutar
+
+---
+
+## 🎮 Cómo usar el dashboard
+
+### Ver información
+- **Pasa el mouse** sobre los gráficos para ver valores exactos
+- **Haz click** en elementos de la leyenda para ocultarlos/mostrarlos
+
+### Usar los filtros
+1. Selecciona un **Agente** (opcional)
+2. Selecciona una **Etiqueta 1** (opcional)
+3. Elige un **Rango de Fechas** (opcional)
+4. Los datos se actualizarán automáticamente
+
+### Exportar gráficos
+- **Hover** sobre el gráfico
+- Haz click en el **ícono de cámara** para descargar como PNG
+
+### Buscar en la tabla
+- Los datos aparecen ordenados por fecha (más recientes primero)
+- Usa `Ctrl + F` en el navegador para buscar
+
+---
+
+## 📁 Archivos Importantes
+
+| Archivo | Descripción |
+|---------|-------------|
+| `dashboard.py` | El programa principal (NO MODIFICAR) |
+| `REPORTE_PROCESADO.xlsx` | Los datos procesados (6589 filas) |
+| `procesar_datos.py` | Para reprocesar datos si es necesario |
+| `requirements.txt` | Lista de librerías necesarias |
+| `README.md` | Documentación técnica completa |
+
+---
+
+## 💻 Requisitos Mínimos
+
+✓ Python 3.11.9 o superior (tienes 3.14.0 ✓)
+✓ Conexión a internet (primera vez)
+✓ Navegador web moderno
+✓ 500MB de espacio libre
+
+---
+
+## 🆘 Necesitas Ayuda?
+
+Mantén abierta la terminal para ver mensajes:
+
+```
+2024-01-17 10:30:45 | INFO | Streamlit started
+2024-01-17 10:30:47 | INFO | Server running at http://localhost:8501
+```
+
+Si hay errores, aparecerán en la terminal y también en el navegador.
+
+---
+
+## 🎯 Datos del Reporte
+
+- **Total de contactos**: 6,589
+- **Período**: 1 de noviembre al 30 de noviembre de 2025
+- **Agentes**: 23 personas diferentes
+- **Fuentes combinadas**: 3 archivos Excel
+- **Formato**: Estandarizado según plantilla NOVIEMBRE LADY FTTH.xlsx
+
+---
+
+## ✨ Funciones Extras
+
+El dashboard incluye:
+
+1. **Gráficos interactivos** con Plotly
+2. **Filtros en tiempo real** sin lag
+3. **Caché automático** para rendimiento
+4. **Diseño responsivo** (se adapta a cualquier pantalla)
+5. **Temas profesionales** con colores coordinados
+
+---
+
+## 📞 Notas Finales
+
+- El dashboard se ejecuta **localmente** en tu computadora
+- No se envían datos a internet
+- Puedes cerrar el navegador y abrir de nuevo sin perder datos
+- Para detener, presiona `Ctrl + C` en la terminal
+
+---
+
+**¡Ya está todo listo! Solo ejecuta y disfruta tu dashboard.** 🎉
