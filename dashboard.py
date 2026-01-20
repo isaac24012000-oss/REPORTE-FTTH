@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import numpy as np
+import os
 
 st.set_page_config(
     page_title="Dashboard WORLD TEL - Cumplimiento Mensual",
@@ -12,26 +13,388 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Cargar datos
+# ============= CARGA DE DATOS DEL EXCEL =============
+
 @st.cache_data
-def load_data():
-    # Datos basados en la imagen proporcionada
-    data = {
-        'Empleado': ['ZIM_ALEXISGK_VTP', 'ZIM_CARLOCZ_VTP', 'ZIM_DANIELAAJ_VTP', 
-                     'ZIM_FLAVIOTB_VTP', 'ZIM_HELBERTPJ_VTP', 'ZIM_INDIRAMM_VTP',
-                     'ZIM_JESUSSZ_VTP', 'ZIM_JULIOLD_VTP', 'ZIM_KARINASE_VTP',
-                     'ZIM_MELANYOA_VTP', 'ZIM_MILAGROSMM_VTP', 'ZIM_NERYIU_VTP',
-                     'ZIM_STEVENCM_VTP', 'ZIM_ZOILASM_VTP'],
-        'Meta': [30, 55, 9, 55, 23, 30, 28, 28, 55, 55, 60, 55, 30, 55],
-        'Cumplimiento': [120, 5, 22, 40, 104, 67, 82, 7, 102, 36, 23, 102, 73, 47],
-        'Efectividad': [73, 33, 38, 74, 63, 69, 70, 100, 84, 70, 94, 82, 60, 52]
+def load_mantra_data():
+    """Carga datos de la hoja MANTRA del archivo REPORTE FTTH.xlsx"""
+    excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
+    
+    try:
+        df_mantra = pd.read_excel(excel_path, sheet_name='MANTRA')
+        return df_mantra
+    except Exception as e:
+        return None
+
+@st.cache_data
+def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
+    """Obtiene total de leads y conversión para un mes específico"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 6589, 299  # Valores por defecto si no hay datos
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    
+    if df_mes.empty:
+        return 0, 0
+    
+    # Limpiar espacios en blanco
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
+    
+    # Total de leads para ese mes
+    total_leads = len(df_mes)
+    
+    # Conversión: Con Cobertura + Contrato OK para ese mes
+    df_conversion = df_mes[
+        (df_mes['NIVEL 2'] == 'Con Cobertura') & 
+        (df_mes['NIVEL 3'] == 'Contrato OK')
+    ]
+    total_conversion = len(df_conversion)
+    
+    return total_leads, total_conversion
+
+@st.cache_data
+def get_con_cobertura_count(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de 'Con Cobertura' para un mes específico"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    
+    if df_mes.empty:
+        return 0
+    
+    # Limpiar espacios en blanco
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    
+    # Contar "Con Cobertura"
+    con_cobertura = len(df_mes[df_mes['NIVEL 2'] == 'Con Cobertura'])
+    
+    return con_cobertura
+
+@st.cache_data
+def get_cancelados_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de cancelados para un mes específico
+    Nota: Para Noviembre, incluye cancelados de Octubre + Noviembre"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+    
+    # Determinar número de mes
+    mes_numeros = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
     }
+    mes_num = mes_numeros.get(mes_seleccionado, None)
+    
+    if mes_num is None:
+        return 0
+    
+    # Para Noviembre, incluir Octubre + Noviembre
+    if mes_num == 11:
+        df_mes = df_drive[
+            ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+            (df_drive['ESTADO'] == 'CANCELADO')
+        ]
+    else:
+        df_mes = df_drive[
+            (df_drive['FECHA'].dt.month == mes_num) &
+            (df_drive['ESTADO'] == 'CANCELADO')
+        ]
+    
+    cancelados = len(df_mes)
+    return cancelados
+
+@st.cache_data
+def get_instaladas_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de instaladas para un mes específico
+    Nota: Para Noviembre, incluye instaladas de Octubre + Noviembre"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+    
+    # Determinar número de mes
+    mes_numeros = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    mes_num = mes_numeros.get(mes_seleccionado, None)
+    
+    if mes_num is None:
+        return 0
+    
+    # Para Noviembre, incluir Octubre + Noviembre
+    if mes_num == 11:
+        df_mes = df_drive[
+            ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+            (df_drive['ESTADO'] == 'INSTALADO')
+        ]
+    else:
+        df_mes = df_drive[
+            (df_drive['FECHA'].dt.month == mes_num) &
+            (df_drive['ESTADO'] == 'INSTALADO')
+        ]
+    
+    instaladas = len(df_mes)
+    return instaladas
+
+@st.cache_data
+def get_no_pago_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de NO PAGO para un mes específico
+    Nota: Para Noviembre, incluye NO PAGO de Octubre + Noviembre"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+    
+    # Determinar número de mes
+    mes_numeros = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    mes_num = mes_numeros.get(mes_seleccionado, None)
+    
+    if mes_num is None:
+        return 0
+    
+    # Limpiar espacios en blanco en MOTIVO CANCELACIÓN
+    df_drive['MOTIVO CANCELACIÓN'] = df_drive['MOTIVO CANCELACIÓN'].astype(str).str.strip()
+    
+    # Para Noviembre, incluir Octubre + Noviembre
+    if mes_num == 11:
+        df_mes = df_drive[
+            ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+            (df_drive['MOTIVO CANCELACIÓN'] == 'NO PAGO')
+        ]
+    else:
+        df_mes = df_drive[
+            (df_drive['FECHA'].dt.month == mes_num) &
+            (df_drive['MOTIVO CANCELACIÓN'] == 'NO PAGO')
+        ]
+    
+    no_pago = len(df_mes)
+    return no_pago
+
+@st.cache_data
+def get_no_responde_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de 'No Responde' para un mes específico desde MANTRA"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    
+    if df_mes.empty:
+        return 0
+    
+    # Limpiar espacios en blanco en NIVEL 1
+    df_mes['NIVEL 1'] = df_mes['NIVEL 1'].astype(str).str.strip()
+    
+    # Contar "No Responde"
+    no_responde = len(df_mes[df_mes['NIVEL 1'] == 'No Responde'])
+    
+    return no_responde
+
+@st.cache_data
+def get_no_especifica_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de 'No Especifica' para un mes específico desde MANTRA"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    
+    if df_mes.empty:
+        return 0
+    
+    # Limpiar espacios en blanco en NIVEL 2
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    
+    # Contar "No Especifica"
+    no_especifica = len(df_mes[df_mes['NIVEL 2'] == 'No Especifica'])
+    
+    return no_especifica
+
+@st.cache_data
+def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el conteo de 'Sin Cobertura' para un mes específico desde MANTRA"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    
+    if df_mes.empty:
+        return 0
+    
+    # Limpiar espacios en blanco en NIVEL 2
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    
+    # Contar "Sin Cobertura"
+    sin_cobertura = len(df_mes[df_mes['NIVEL 2'] == 'Sin Cobertura'])
+    
+    return sin_cobertura
+
+@st.cache_data
+def load_lista_metas():
+    """Carga los datos de metas por mes de la hoja LISTA"""
+    excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
+    
+    try:
+        df_lista = pd.read_excel(excel_path, sheet_name='LISTA')
+        return df_lista
+    except Exception as e:
+        return None
+
+@st.cache_data
+def load_drive_data():
+    """Carga datos de la hoja DRIVE del archivo REPORTE FTTH.xlsx"""
+    excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
+    
+    try:
+        df_drive = pd.read_excel(excel_path, sheet_name='DRIVE')
+        return df_drive
+    except Exception as e:
+        return None
+
+def calculate_drive_metrics(metas_dict, mes_filtro=None):
+    """
+    Calcula Cumplimiento y Efectividad por asesor usando datos de DRIVE
+    
+    Cumplimiento = INSTALADAS / META
+    Efectividad = INSTALADAS / (INSTALADAS + CANCELADAS)
+    """
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return {}
+    
+    # Extraer FECHA, ASESOR, ESTADO
+    df_drive = df_drive[['FECHA', 'ASESOR', 'ESTADO']].copy()
+    
+    # Filtrar por mes si se especifica
+    if mes_filtro:
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        df_drive = df_drive[df_drive['FECHA'].dt.month == mes_filtro]
+    
+    # Contar INSTALADOS por asesor
+    instalados_por_asesor = df_drive[df_drive['ESTADO'] == 'INSTALADO'].groupby('ASESOR').size()
+    
+    # Contar CANCELADOS por asesor
+    cancelados_por_asesor = df_drive[df_drive['ESTADO'] == 'CANCELADO'].groupby('ASESOR').size()
+    
+    # Calcular métricas
+    metricas = {}
+    for asesor, meta in metas_dict.items():
+        instalados = instalados_por_asesor.get(asesor, 0)
+        cancelados = cancelados_por_asesor.get(asesor, 0)
+        
+        # Cumplimiento = INSTALADAS / META
+        cumplimiento = round((instalados / meta * 100) if meta > 0 else 0)
+        
+        # Efectividad = INSTALADAS / (INSTALADAS + CANCELADAS)
+        total_transacciones = instalados + cancelados
+        efectividad = round((instalados / total_transacciones * 100) if total_transacciones > 0 else 0)
+        
+        metricas[asesor] = {
+            'instalados': instalados,
+            'cancelados': cancelados,
+            'cumplimiento': cumplimiento,
+            'efectividad': efectividad
+        }
+    
+    return metricas
+
+# Cargar datos
+def load_data(mes_seleccionado=None):
+    # Cargar la hoja LISTA para obtener metas por mes
+    df_lista = load_lista_metas()
+    
+    # Crear diccionario de metas para el mes seleccionado
+    metas_dict = {}
+    
+    if df_lista is not None and not df_lista.empty:
+        # Filtrar por el mes seleccionado
+        df_mes_metas = df_lista[df_lista['Mes'] == mes_seleccionado]
+        
+        # Crear diccionario {Asesor: Meta} SOLO con los asesores activos en este mes
+        for idx, row in df_mes_metas.iterrows():
+            metas_dict[row['Asesor']] = int(row['Meta'])
+    
+    # Si no hay datos para el mes en LISTA, retornar vacío
+    if not metas_dict:
+        metas_dict = {}
+    
+    # Determinar número de mes
+    mes_numeros = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    mes_num = mes_numeros.get(mes_seleccionado, None)
+    
+    # Obtener métricas de DRIVE filtrando por mes
+    metricas = calculate_drive_metrics(metas_dict, mes_filtro=mes_num)
+    
+    # Construir DataFrame
+    empleados = []
+    metas = []
+    cumplimientos = []
+    efectividades = []
+    instaladas = []
+    canceladas = []
+    
+    for empleado, meta in metas_dict.items():
+        empleados.append(empleado)
+        metas.append(meta)
+        
+        if empleado in metricas:
+            cumplimientos.append(metricas[empleado]['cumplimiento'])
+            efectividades.append(metricas[empleado]['efectividad'])
+            instaladas.append(metricas[empleado]['instalados'])
+            canceladas.append(metricas[empleado]['cancelados'])
+        else:
+            cumplimientos.append(0)
+            efectividades.append(0)
+            instaladas.append(0)
+            canceladas.append(0)
+    
+    data = {
+        'Empleado': empleados,
+        'Meta': metas,
+        'Instaladas': instaladas,
+        'Canceladas': canceladas,
+        'Cumplimiento': cumplimientos,
+        'Efectividad': efectividades
+    }
+    
     df = pd.DataFrame(data)
     df['% Meta Alcanzado'] = (df['Cumplimiento'] / 100 * 100).astype(int)
     df['Diferencia'] = df['Cumplimiento'] - 100
     return df
-
-df = load_data()
 
 # Estilos mejorados con tema moderno y premium
 st.markdown("""
@@ -400,45 +763,254 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Header mejorado
-st.markdown("""
-<div class="header-container">
-    <div class="header-content">
-        <div class="header-title">🌐 WORLD TEL</div>
-        <div class="header-subtitle">Dashboard de Cumplimiento Mensual - Noviembre 2025</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
 # Filtros mejorados con layout dinámico
 st.markdown("### 🎛️ Filtros y Opciones")
 col_filtros = st.columns(3, gap="medium")
 
 with col_filtros[0]:
-    mes = st.selectbox("📅 Selecciona Mes", ["Noviembre", "Octubre", "Septiembre"])
+    mes = st.selectbox("📅 Selecciona Mes", ["Noviembre", "Diciembre", "Enero"], index=2)
+
+# Mapeo de meses a años
+mes_año_map = {
+    "Noviembre": "Noviembre 2025",
+    "Diciembre": "Diciembre 2025",
+    "Enero": "Enero 2026"
+}
+
+# Header mejorado - Dinámico
+st.markdown(f"""
+<div class="header-container">
+    <div class="header-content">
+        <div class="header-title">🌐 WORLD TEL</div>
+        <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Cargar datos con el mes seleccionado
+df = load_data(mes)
 
 with col_filtros[1]:
     opciones_empleados = ["Todos"] + sorted(df['Empleado'].unique())
     empleado_seleccionado = st.selectbox("👤 Filtrar por Empleado", opciones_empleados)
 
-with col_filtros[2]:
-    vista = st.selectbox("👁️ Vista de Datos", ["Completa", "Top 5", "Últimos 5"])
+vista = "Completa"
+
+# Obtener valores del Excel basado en el mes seleccionado
+total_leads_excel, total_conversion_excel = get_total_leads_and_conversion(mes)
 
 # KPI Cards mejorados - Datos del asesor seleccionado o totales
+def get_cumplimiento_total_mes(mes_nombre):
+    """Calcula el cumplimiento total del mes: (Total Instaladas / Total de Metas) * 100"""
+    df_lista = load_lista_metas()
+    df_drive = load_drive_data()
+    
+    if df_lista is None or df_lista.empty or df_drive is None or df_drive.empty:
+        return 0
+    
+    try:
+        # Mapear nombre del mes a número
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_nombre)
+        
+        if mes_num is None:
+            return 0
+        
+        # Obtener total de metas para el mes
+        df_mes_metas = df_lista[df_lista['Mes'] == mes_nombre]
+        total_metas = df_mes_metas['Meta'].sum()
+        
+        if total_metas == 0:
+            return 0
+        
+        # Convertir FECHA a datetime
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        
+        # Para Noviembre, incluir Octubre + Noviembre
+        if mes_num == 11:
+            df_filtrado = df_drive[
+                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+                (df_drive['ESTADO'] == 'INSTALADO')
+            ]
+        else:
+            # Para otros meses, solo ese mes
+            df_filtrado = df_drive[
+                (df_drive['FECHA'].dt.month == mes_num) &
+                (df_drive['ESTADO'] == 'INSTALADO')
+            ]
+        
+        # Contar total de instaladas
+        total_instaladas = len(df_filtrado)
+        
+        # Calcular cumplimiento
+        cumplimiento_total = round((total_instaladas / total_metas * 100))
+        
+        return cumplimiento_total
+    except Exception as e:
+        return 0
+
+def get_efectividad_mes(mes_nombre):
+    """Calcula la efectividad para un mes: INSTALADAS/(INSTALADAS+CANCELADAS)"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    try:
+        # Mapear nombre del mes a número
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_nombre)
+        
+        if mes_num is None:
+            return 0
+        
+        # Convertir FECHA a datetime
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        
+        # Para Noviembre, incluir Octubre + Noviembre
+        if mes_num == 11:
+            df_filtrado = df_drive[
+                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11))
+            ]
+        else:
+            # Para otros meses, solo ese mes
+            df_filtrado = df_drive[
+                (df_drive['FECHA'].dt.month == mes_num)
+            ]
+        
+        # Contar instaladas y canceladas
+        instaladas = len(df_filtrado[df_filtrado['ESTADO'] == 'INSTALADO'])
+        canceladas = len(df_filtrado[df_filtrado['ESTADO'] == 'CANCELADO'])
+        
+        # Calcular efectividad
+        total_transacciones = instaladas + canceladas
+        if total_transacciones > 0:
+            efectividad = round((instaladas / total_transacciones * 100))
+        else:
+            efectividad = 0
+        
+        return efectividad
+    except Exception as e:
+        return 0
+
+def get_ventas_mes(mes_nombre):
+    """Obtiene el total de instaladas para un mes específico del DRIVE"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    try:
+        # Mapear nombre del mes a número
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_nombre)
+        
+        if mes_num is None:
+            return 0
+        
+        # Convertir FECHA a datetime
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        
+        # Para Noviembre, sumar Octubre + Noviembre
+        if mes_num == 11:
+            df_filtrado = df_drive[
+                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+                (df_drive['ESTADO'] == 'INSTALADO')
+            ]
+        else:
+            # Para otros meses, solo ese mes
+            df_filtrado = df_drive[
+                (df_drive['FECHA'].dt.month == mes_num) &
+                (df_drive['ESTADO'] == 'INSTALADO')
+            ]
+        
+        # Contar total
+        total = len(df_filtrado)
+        return total
+    except Exception as e:
+        return 0
+
 st.markdown("")  # Espaciador
 
 col1, col2, col3, col4, col5 = st.columns(5, gap="small")
 
 if empleado_seleccionado == "Todos":
-    # Mostrar valores fijos del mes completo
-    cumpl_val = 70
+    # Preparar datos según vista
+    df_vista = df[['Empleado', 'Cumplimiento']].copy()
+    
+    if vista == "Top 5":
+        df_vista = df_vista.nlargest(5, 'Cumplimiento')
+    elif vista == "Últimos 5":
+        df_vista = df_vista.nsmallest(5, 'Cumplimiento')
+    
+    # Obtener asesores en la vista
+    asesores_vista = df_vista['Empleado'].tolist()
+    
+    # Obtener ventas totales, efectividad y cumplimiento total del mes actual desde DRIVE
+    # Pero filtrando solo por asesores en la vista
+    df_drive_filtrado = load_drive_data()
+    
+    if df_drive_filtrado is not None and not df_drive_filtrado.empty:
+        # Filtrar solo los asesores en la vista
+        df_drive_filtrado = df_drive_filtrado[df_drive_filtrado['ASESOR'].isin(asesores_vista)]
+        
+        # Calcular métricas para esta vista
+        df_drive_filtrado['FECHA'] = pd.to_datetime(df_drive_filtrado['FECHA'], errors='coerce')
+        
+        # Determinar número de mes
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes, None)
+        
+        # Para Noviembre, incluir Octubre + Noviembre
+        if mes_num == 11:
+            df_mes_filtrado = df_drive_filtrado[
+                ((df_drive_filtrado['FECHA'].dt.month == 10) | (df_drive_filtrado['FECHA'].dt.month == 11))
+            ]
+        else:
+            df_mes_filtrado = df_drive_filtrado[df_drive_filtrado['FECHA'].dt.month == mes_num]
+        
+        # Ventas (instaladas)
+        ventas_total = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'INSTALADO'])
+        
+        # Efectividad
+        instaladas = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'INSTALADO'])
+        canceladas = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'CANCELADO'])
+        total_trans = instaladas + canceladas
+        efectividad_mes = round((instaladas / total_trans * 100)) if total_trans > 0 else 0
+        
+        # Cumplimiento
+        df_lista = load_lista_metas()
+        df_mes_metas = df_lista[df_lista['Mes'] == mes]
+        df_mes_metas_vista = df_mes_metas[df_mes_metas['Asesor'].isin(asesores_vista)]
+        total_metas = df_mes_metas_vista['Meta'].sum()
+        cumplimiento_total = round((ventas_total / total_metas * 100)) if total_metas > 0 else 0
+    else:
+        ventas_total = 0
+        efectividad_mes = 0
+        cumplimiento_total = 0
     
     kpis = [
-        ("6,589", "📊 Leads", col1),
-        ("299", "✅ Con Contrato", col2),
-        ("397", "💰 Ventas Mes", col3),
-        ("70%", "⭐ Efectividad", col4),
-        ("39%", "🎯 Conversión", col5),
+        (f"{total_leads_excel:,}", "📊 Leads", col1),
+        (f"{total_conversion_excel}", "✅ Ventas Del Mes", col2),
+        (str(ventas_total), "💰 Ventas Total Del Mes", col3),
+        (f"{efectividad_mes}%", "⭐ Conversión de Ventas", col4),
+        (f"{cumplimiento_total}%", "🎯 Cumplimiento", col5),
     ]
 else:
     empleado_data = df[df['Empleado'] == empleado_seleccionado].iloc[0]
@@ -448,8 +1020,8 @@ else:
     kpis = [
         (str(int(empleado_data['Meta'])), "📊 Meta", col1),
         (f"{cumpl_val}%", "✅ Cumplimiento", col2),
-        (f"{efect_val}%", "⭐ Efectividad", col3),
-        ("70%", "🎯 Conversión", col4),
+        (f"{efect_val}%", "⭐ Conversión de Ventas", col3),
+        ("70%", "🎯 Cumplimiento", col4),
         ("🟢 Excelente" if cumpl_val >= 70 else "🟡 Bueno" if cumpl_val >= 40 else "🔴 Bajo", "📈 Estado", col5),
     ]
 
@@ -545,9 +1117,9 @@ with col2:
     )
     st.plotly_chart(fig_cumpl, use_container_width=True, config={'displayModeBar': False})
 
-# Columna 3: Efectividad por Agente
+# Columna 3: Conversión de Ventas por Agente
 with col3:
-    st.markdown('<div class="chart-title">⭐ Efectividad por Agente (%)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">⭐ Conversión de Ventas por Agente (%)</div>', unsafe_allow_html=True)
     df_sorted_eff = df.sort_values('Efectividad', ascending=True)
     
     colors_eff = [get_color(x) for x in df_sorted_eff['Efectividad']]
@@ -594,29 +1166,145 @@ with col3:
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
+# Tabla de detalle de empleados
+st.markdown("### 👥 Detalle Completo de Empleados")
+
+df_detail = df[['Empleado', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'Efectividad']].copy()
+df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
+df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
+
+# Aplicar filtro de vista
+if vista == "Top 5":
+    df_detail = df_detail.nlargest(5, 'Cumplimiento').reset_index(drop=True)
+elif vista == "Últimos 5":
+    df_detail = df_detail.nsmallest(5, 'Cumplimiento').reset_index(drop=True)
+else:
+    df_detail = df_detail.sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
+
+# Crear tabla HTML personalizada con TODOS los datos
+html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Empleado</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
+
+for idx, (_, row) in enumerate(df_detail.iterrows(), 1):
+    empleado = row['Empleado']
+    meta = int(row['Meta'])
+    instaladas = int(row['Instaladas'])
+    canceladas = int(row['Canceladas'])
+    cumpl = int(row['Cumplimiento'])
+    efect = int(row['Efectividad'])
+    
+    # Determinar estado
+    if cumpl >= 70:
+        estado = '<span class="status-excellent">✓ Excelente</span>'
+        fila_bg = 'background-color: #f0fdf4;'
+    elif cumpl >= 40:
+        estado = '<span class="status-good">~ Bueno</span>'
+        fila_bg = 'background-color: #fffbeb;'
+    else:
+        estado = '<span class="status-poor">✗ Bajo</span>'
+        fila_bg = 'background-color: #fef2f2;'
+    
+    html_detail += f'''<tr style="{fila_bg}">
+        <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
+        <td style="font-weight: 600;">{empleado}</td>
+        <td style="text-align: center; font-weight: 600;">{meta}</td>
+        <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
+        <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
+        <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
+        <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
+        <td style="text-align: center;">{estado}</td>
+    </tr>'''
+
+html_detail += '</tbody></table></div>'
+st.markdown(html_detail, unsafe_allow_html=True)
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
 # Tabla de resumen mensual
 st.markdown("### 📊 Resumen Mensual Completo")
 
 st.markdown('<div style="margin: 20px 0;"></div>', unsafe_allow_html=True)
 
+# Obtener datos para cada mes
+meses_disponibles = ['Noviembre', 'Diciembre', 'Enero']
+datos_meses = []
+totales = {'Leads': 0, 'Contr': 0, 'Cober': 0}
+
+for mes_nombre in meses_disponibles:
+    leads, conversion = get_total_leads_and_conversion(mes_nombre)
+    con_cobertura = get_con_cobertura_count(mes_nombre)
+    cancelados = get_cancelados_mes(mes_nombre)
+    instaladas = get_instaladas_mes(mes_nombre)
+    no_pago = get_no_pago_mes(mes_nombre)
+    no_responde = get_no_responde_mes(mes_nombre)
+    no_especifica = get_no_especifica_mes(mes_nombre)
+    sin_cobertura = get_sin_cobertura_mes(mes_nombre)
+    datos_meses.append({
+        'Mes': mes_nombre,
+        'Leads': leads,
+        'Cober': con_cobertura,
+        'Contr': conversion,
+        'Cancel': cancelados,
+        'Pago': instaladas,
+        'NoPago': no_pago,
+        'NoResp': no_responde,
+        'NoEsp': no_especifica,
+        'SinCob': sin_cobertura
+    })
+    totales['Leads'] += leads
+    totales['Cober'] += con_cobertura
+    totales['Contr'] += conversion
+
+# Construir resumen_data con datos dinámicos
 resumen_data = {
-    'Mes': ['Noviembre', 'Total'],
-    'Leads': [6589, 6589],
-    'Cober': [774, 774],
-    '%Cob': ['12%', '12%'],
-    'Contr': [299, 299],
-    '%Conv': ['39%', '39%'],
-    'Real': ['51%', '51%'],
-    'Cancel': [89, 89],
-    'Pagó': [352, 352],
-    'NoPag': [63, 63],
-    'Efect': ['70%', '70%'],
-    'NoResp': [2271, 2271],
-    '%NR': ['34%', '34%'],
-    'NoEsp': [1021, 1021],
-    '%NE': ['15%', '15%'],
-    '%SC': ['38%', '38%']
+    'Mes': [],
+    'Leads': [],
+    'Cober': [],
+    '%Cob': [],
+    'Contr': [],
+    '%Conv': [],
+    'Real': [],
+    'Cancel': [],
+    'Pagó': [],
+    'NoPag': [],
+    'Efect': [],
+    'NoResp': [],
+    '%NR': [],
+    'NoEsp': [],
+    '%NE': [],
+    '%SC': []
 }
+
+# Agregar filas por mes
+for dato in datos_meses:
+    resumen_data['Mes'].append(dato['Mes'])
+    resumen_data['Leads'].append(dato['Leads'])
+    resumen_data['Cober'].append(dato['Cober'])
+    cob_pct = f'{int(dato["Cober"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
+    resumen_data['%Cob'].append(cob_pct)
+    resumen_data['Contr'].append(dato['Contr'])
+    conv_pct = f'{int(dato["Contr"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
+    resumen_data['%Conv'].append(conv_pct)
+    resumen_data['Real'].append('51%')
+    resumen_data['Cancel'].append(dato['Cancel'])
+    resumen_data['Pagó'].append(dato['Pago'])
+    resumen_data['NoPag'].append(dato['NoPago'])
+    # Calcular EFECT = PAGÓ / (CANCEL + PAGÓ + NOPAG)
+    total_transacciones = dato['Cancel'] + dato['Pago'] + dato['NoPago']
+    efect_pct = f'{int(dato["Pago"]/total_transacciones*100) if total_transacciones > 0 else 0}%'
+    resumen_data['Efect'].append(efect_pct)
+    resumen_data['NoResp'].append(dato['NoResp'])
+    # Calcular %NR = NORESP / LEADS
+    nr_pct = f'{int(dato["NoResp"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
+    resumen_data['%NR'].append(nr_pct)
+    resumen_data['NoEsp'].append(dato['NoEsp'])
+    # Calcular %NE = NOESP / LEADS
+    ne_pct = f'{int(dato["NoEsp"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
+    resumen_data['%NE'].append(ne_pct)
+    # Calcular %SC = SinCobertura / LEADS
+    sc_pct = f'{int(dato["SinCob"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
+    resumen_data['%SC'].append(sc_pct)
 
 df_resumen = pd.DataFrame(resumen_data)
 
@@ -638,57 +1326,6 @@ for idx, row in df_resumen.iterrows():
 
 html_resumen += '</tbody></table></div>'
 st.markdown(html_resumen, unsafe_allow_html=True)
-
-st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-
-st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-
-# Tabla de detalle de empleados
-st.markdown("### 👥 Detalle Completo de Empleados")
-
-df_detail = df[['Empleado', 'Meta', 'Cumplimiento', 'Efectividad']].copy()
-df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
-df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
-
-# Aplicar filtro de vista
-if vista == "Top 5":
-    df_detail = df_detail.nlargest(5, 'Cumplimiento')
-elif vista == "Últimos 5":
-    df_detail = df_detail.nsmallest(5, 'Cumplimiento')
-else:
-    df_detail = df_detail.sort_values('Cumplimiento', ascending=False)
-
-# Crear tabla HTML personalizada con TODOS los datos
-html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 8%;">Pos</th><th style="width: 35%;">Empleado</th><th style="width: 12%;">Meta</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Efectiv%</th><th style="width: 21%;">Estado</th></tr></thead><tbody>'
-
-for idx, (_, row) in enumerate(df_detail.iterrows(), 1):
-    empleado = row['Empleado']
-    meta = int(row['Meta'])
-    cumpl = int(row['Cumplimiento'])
-    efect = int(row['Efectividad'])
-    
-    # Determinar estado
-    if cumpl >= 70:
-        estado = '<span class="status-excellent">✓ Excelente</span>'
-        fila_bg = 'background-color: #f0fdf4;'
-    elif cumpl >= 40:
-        estado = '<span class="status-good">~ Bueno</span>'
-        fila_bg = 'background-color: #fffbeb;'
-    else:
-        estado = '<span class="status-poor">✗ Bajo</span>'
-        fila_bg = 'background-color: #fef2f2;'
-    
-    html_detail += f'''<tr style="{fila_bg}">
-        <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
-        <td style="font-weight: 600;">{empleado}</td>
-        <td style="text-align: center; font-weight: 600;">{meta}</td>
-        <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
-        <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
-        <td style="text-align: center;">{estado}</td>
-    </tr>'''
-
-html_detail += '</tbody></table></div>'
-st.markdown(html_detail, unsafe_allow_html=True)
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
