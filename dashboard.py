@@ -1220,15 +1220,20 @@ st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 # Tabla de detalle de empleados
 st.markdown("### 👥 Detalle Completo de Empleados")
 
+# Filtro para ordenamiento
+criterio_orden = st.selectbox(
+    "Ordenar por:",
+    ["Cumplimiento (Mayor a Menor)", "Conversión (Mayor a Menor)"],
+    key="criterio_orden"
+)
+
 df_detail = df[['Empleado', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'Efectividad']].copy()
 df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
 df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
 
-# Aplicar filtro de vista
-if vista == "Top 5":
-    df_detail = df_detail.nlargest(5, 'Cumplimiento').reset_index(drop=True)
-elif vista == "Últimos 5":
-    df_detail = df_detail.nsmallest(5, 'Cumplimiento').reset_index(drop=True)
+# Ordenar por el criterio seleccionado
+if criterio_orden == "Conversión (Mayor a Menor)":
+    df_detail = df_detail.sort_values('Efectividad', ascending=False).reset_index(drop=True)
 else:
     df_detail = df_detail.sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
 
