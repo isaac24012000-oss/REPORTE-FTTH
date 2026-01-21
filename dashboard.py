@@ -10,12 +10,21 @@ st.set_page_config(
     page_title="Dashboard WORLD TEL - Cumplimiento Mensual",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    theme={
+        "base": "light",
+        "primaryColor": "#0066cc",
+        "backgroundColor": "#f0f4f8",
+        "secondaryBackgroundColor": "#ffffff",
+        "textColor": "#1e293b",
+        "font": "sans serif"
+    }
 )
+# Actualizado 21/01/2026 - VENTAS TOTAL DEL MES: 472
 
 # ============= CARGA DE DATOS DEL EXCEL =============
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def load_mantra_data():
     """Carga datos de la hoja MANTRA del archivo REPORTE FTTH.xlsx"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -26,7 +35,7 @@ def load_mantra_data():
     except Exception as e:
         return None
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     """Obtiene total de leads y conversión para un mes específico"""
     df_mantra = load_mantra_data()
@@ -56,7 +65,7 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     
     return total_leads, total_conversion
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Con Cobertura' para un mes específico"""
     df_mantra = load_mantra_data()
@@ -78,7 +87,7 @@ def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     
     return con_cobertura
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def get_cancelados_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de cancelados para un mes específico
     Nota: Para Noviembre, incluye cancelados de Octubre + Noviembre"""
@@ -144,7 +153,8 @@ def get_instaladas_mes(mes_seleccionado="Noviembre"):
     
     return instaladas
 
-@st.cache_data
+
+@st.cache_data(ttl=0)
 def get_no_pago_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de NO PAGO para un mes específico
     Nota: Para Noviembre, incluye NO PAGO de Octubre + Noviembre"""
@@ -184,7 +194,7 @@ def get_no_pago_mes(mes_seleccionado="Noviembre"):
     no_pago = len(df_mes)
     return no_pago
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def get_no_responde_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'No Responde' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -206,7 +216,7 @@ def get_no_responde_mes(mes_seleccionado="Noviembre"):
     
     return no_responde
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def get_no_especifica_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'No Especifica' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -228,7 +238,7 @@ def get_no_especifica_mes(mes_seleccionado="Noviembre"):
     
     return no_especifica
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Sin Cobertura' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -250,7 +260,7 @@ def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
     
     return sin_cobertura
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def load_lista_metas():
     """Carga los datos de metas por mes de la hoja LISTA"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -261,7 +271,7 @@ def load_lista_metas():
     except Exception as e:
         return None
 
-@st.cache_data
+@st.cache_data(ttl=0)
 def load_drive_data():
     """Carga datos de la hoja DRIVE del archivo REPORTE FTTH.xlsx"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -275,7 +285,13 @@ def load_drive_data():
 def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
     """
     Cuenta instaladas aplicando regla para todos los meses.
-    Regla: INSTALADO + (PENDIENTE con PAGO='SI')
+    
+    Regla de VENTAS TOTAL DEL MES:
+    - Incluye INSTALADO (todos)
+    - Incluye PENDIENTE solo si PAGO='SI'
+    - Excluye CANCELADO
+    
+    Fórmula: COUNT(ESTADO='INSTALADO') + COUNT(ESTADO='PENDIENTE' AND PAGO='SI')
     
     Args:
         df: DataFrame filtrado por mes
@@ -300,6 +316,7 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
         df_mes = df_temp[df_temp['FECHA'].dt.month == fecha_mes_num]
     
     # Aplicar regla: INSTALADO o (PENDIENTE + PAGO='SI')
+    # Esto forma VENTAS TOTAL DEL MES
     df_instaladas = df_mes[
         (df_mes['ESTADO'] == 'INSTALADO') |
         ((df_mes['ESTADO'] == 'PENDIENTE') & (df_mes['PAGO'] == 'SI'))
@@ -973,12 +990,12 @@ if empleado_seleccionado == "Todos":
     asesores_vista = df_vista['Empleado'].tolist()
     
     # Obtener ventas totales, efectividad y cumplimiento total del mes actual desde DRIVE
-    # Pero filtrando solo por asesores en la vista
+    # SIN filtrar por asesores - mostrar TOTALES de TODOS
     df_drive_filtrado = load_drive_data()
     
     if df_drive_filtrado is not None and not df_drive_filtrado.empty:
-        # Filtrar solo los asesores en la vista
-        df_drive_filtrado = df_drive_filtrado[df_drive_filtrado['ASESOR'].isin(asesores_vista)]
+        # NO filtrar por asesores - calcular para TODOS
+        # df_drive_filtrado = df_drive_filtrado[df_drive_filtrado['ASESOR'].isin(asesores_vista)]
         
         # Calcular métricas para esta vista
         df_drive_filtrado['FECHA'] = pd.to_datetime(df_drive_filtrado['FECHA'], errors='coerce')
@@ -1008,11 +1025,10 @@ if empleado_seleccionado == "Todos":
         total_trans = instaladas + canceladas
         efectividad_mes = round((instaladas / total_trans * 100)) if total_trans > 0 else 0
         
-        # Cumplimiento
+        # Cumplimiento - calcular contra TODAS las metas del mes
         df_lista = load_lista_metas()
         df_mes_metas = df_lista[df_lista['Mes'] == mes]
-        df_mes_metas_vista = df_mes_metas[df_mes_metas['Asesor'].isin(asesores_vista)]
-        total_metas = df_mes_metas_vista['Meta'].sum()
+        total_metas = df_mes_metas['Meta'].sum()
         cumplimiento_total = round((ventas_total / total_metas * 100)) if total_metas > 0 else 0
     else:
         ventas_total = 0
