@@ -319,8 +319,8 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None):
     if df_drive is None or df_drive.empty:
         return {}
     
-    # Extraer FECHA, ASESOR, ESTADO
-    df_drive = df_drive[['FECHA', 'ASESOR', 'ESTADO']].copy()
+    # Extraer FECHA, ASESOR, ESTADO, PAGO
+    df_drive = df_drive[['FECHA', 'ASESOR', 'ESTADO', 'PAGO']].copy()
     
     # Filtrar por mes si se especifica
     if mes_filtro:
