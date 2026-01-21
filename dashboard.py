@@ -60,37 +60,40 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
 
 @st.cache_data(ttl=0)
 def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
-    """Calcula la conversión real: Contrato OK / Con Cobertura
-    Usando datos de MANTRA"""
+    """Calcula la conversión: Ventas Generales / Con Cobertura
+    = Total de transacciones DRIVE / Con Cobertura MANTRA"""
     df_mantra = load_mantra_data()
+    df_drive = load_drive_data()
     
-    if df_mantra is None or df_mantra.empty:
+    if df_mantra is None or df_mantra.empty or df_drive is None or df_drive.empty:
         return 0
     
-    # Filtrar por mes
-    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
-    
-    if df_mes.empty:
-        return 0
-    
-    # Limpiar espacios en NIVEL 2 y NIVEL 3
-    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
-    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
-    
-    # Con Cobertura
-    con_cobertura = len(df_mes[df_mes['NIVEL 2'] == 'Con Cobertura'])
+    # Obtener Con Cobertura de MANTRA para el mes
+    df_mes_mantra = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    df_mes_mantra['NIVEL 2'] = df_mes_mantra['NIVEL 2'].astype(str).str.strip()
+    con_cobertura = len(df_mes_mantra[df_mes_mantra['NIVEL 2'] == 'Con Cobertura'])
     
     if con_cobertura == 0:
         return 0
     
-    # Contrato OK (dentro de Con Cobertura)
-    contrato_ok = len(df_mes[
-        (df_mes['NIVEL 2'] == 'Con Cobertura') & 
-        (df_mes['NIVEL 3'] == 'Contrato OK')
-    ])
+    # Obtener Ventas Generales de DRIVE para el mes (total de transacciones)
+    if 'MES' in df_drive.columns:
+        df_mes_drive = df_drive[df_drive['MES'] == mes_seleccionado]
+    else:
+        # Fallback a FECHA
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num]
     
-    # Conversión = Contrato OK / Con Cobertura
-    conversion_pct = round((contrato_ok / con_cobertura * 100)) if con_cobertura > 0 else 0
+    ventas_generales = len(df_mes_drive)
+    
+    # Conversión = Ventas Generales / Con Cobertura
+    conversion_pct = round((ventas_generales / con_cobertura * 100)) if con_cobertura > 0 else 0
     return conversion_pct
 
 @st.cache_data(ttl=0)
@@ -393,37 +396,40 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
 
 @st.cache_data(ttl=0)
 def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
-    """Calcula la conversión por asesor: Contrato OK / Con Cobertura
-    Usando datos de MANTRA"""
+    """Calcula la conversión por asesor: Ventas del Asesor / Con Cobertura del Asesor
+    Usando datos de DRIVE y MANTRA"""
     df_mantra = load_mantra_data()
+    df_drive = load_drive_data()
     
-    if df_mantra is None or df_mantra.empty:
+    if df_mantra is None or df_mantra.empty or df_drive is None or df_drive.empty:
         return 0
     
-    # Filtrar por mes y por asesor (columna se llama 'Agente' en MANTRA)
-    df_mes = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'] == asesor)]
+    # Obtener Con Cobertura del asesor en MANTRA
+    df_mes_mantra = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'] == asesor)]
+    df_mes_mantra['NIVEL 2'] = df_mes_mantra['NIVEL 2'].astype(str).str.strip()
+    con_cobertura_asesor = len(df_mes_mantra[df_mes_mantra['NIVEL 2'] == 'Con Cobertura'])
     
-    if df_mes.empty:
+    if con_cobertura_asesor == 0:
         return 0
     
-    # Limpiar espacios en NIVEL 2 y NIVEL 3
-    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
-    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
+    # Obtener Ventas del asesor en DRIVE (todas las transacciones)
+    if 'MES' in df_drive.columns:
+        df_mes_drive = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'] == asesor)]
+    else:
+        # Fallback a FECHA
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        df_mes_drive = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'] == asesor)]
     
-    # Con Cobertura
-    con_cobertura = len(df_mes[df_mes['NIVEL 2'] == 'Con Cobertura'])
+    ventas_asesor = len(df_mes_drive)
     
-    if con_cobertura == 0:
-        return 0
-    
-    # Contrato OK (dentro de Con Cobertura)
-    contrato_ok = len(df_mes[
-        (df_mes['NIVEL 2'] == 'Con Cobertura') & 
-        (df_mes['NIVEL 3'] == 'Contrato OK')
-    ])
-    
-    # Conversión = Contrato OK / Con Cobertura
-    conversion_pct = round((contrato_ok / con_cobertura * 100)) if con_cobertura > 0 else 0
+    # Conversión = Ventas del Asesor / Con Cobertura del Asesor
+    conversion_pct = round((ventas_asesor / con_cobertura_asesor * 100)) if con_cobertura_asesor > 0 else 0
     return conversion_pct
 
 def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
