@@ -118,7 +118,8 @@ def get_cancelados_mes(mes_seleccionado="Noviembre"):
 @st.cache_data
 def get_instaladas_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de instaladas para un mes específico
-    Nota: Para Noviembre, incluye instaladas de Octubre + Noviembre"""
+    Regla: INSTALADO o (PENDIENTE con PAGO='SÍ')
+    Nota: Para Noviembre, incluye Octubre + Noviembre"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -138,18 +139,9 @@ def get_instaladas_mes(mes_seleccionado="Noviembre"):
         return 0
     
     # Para Noviembre, incluir Octubre + Noviembre
-    if mes_num == 11:
-        df_mes = df_drive[
-            ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
-            (df_drive['ESTADO'] == 'INSTALADO')
-        ]
-    else:
-        df_mes = df_drive[
-            (df_drive['FECHA'].dt.month == mes_num) &
-            (df_drive['ESTADO'] == 'INSTALADO')
-        ]
+    es_noviembre = mes_num == 11
+    instaladas = count_instaladas_con_regla(df_drive, mes_num, es_noviembre)
     
-    instaladas = len(df_mes)
     return instaladas
 
 @st.cache_data
@@ -280,6 +272,41 @@ def load_drive_data():
     except Exception as e:
         return None
 
+def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
+    """
+    Cuenta instaladas aplicando la regla de PENDIENTE con PAGO.
+    Regla: Cuenta ESTADO='INSTALADO' o (ESTADO='PENDIENTE' y PAGO='SÍ')
+    
+    Args:
+        df: DataFrame filtrado por mes
+        fecha_mes_num: número del mes
+        fecha_mes_es_noviembre: si incluir Oct+Nov
+    
+    Returns:
+        int: cantidad de instaladas según la regla
+    """
+    # Preparar dataframe
+    df_temp = df.copy()
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
+    df_temp['PAGO'] = df_temp['PAGO'].astype(str).str.strip()
+    
+    # Filtrar por mes
+    if fecha_mes_es_noviembre:
+        df_mes = df_temp[
+            ((df_temp['FECHA'].dt.month == 10) | (df_temp['FECHA'].dt.month == 11))
+        ]
+    else:
+        df_mes = df_temp[df_temp['FECHA'].dt.month == fecha_mes_num]
+    
+    # Aplicar regla: INSTALADO o (PENDIENTE + PAGO='SÍ')
+    df_instaladas = df_mes[
+        (df_mes['ESTADO'] == 'INSTALADO') |
+        ((df_mes['ESTADO'] == 'PENDIENTE') & (df_mes['PAGO'] == 'SÍ'))
+    ]
+    
+    return len(df_instaladas)
+
 def calculate_drive_metrics(metas_dict, mes_filtro=None):
     """
     Calcula Cumplimiento y Efectividad por asesor usando datos de DRIVE
@@ -300,8 +327,17 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None):
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         df_drive = df_drive[df_drive['FECHA'].dt.month == mes_filtro]
     
-    # Contar INSTALADOS por asesor
-    instalados_por_asesor = df_drive[df_drive['ESTADO'] == 'INSTALADO'].groupby('ASESOR').size()
+    # Contar INSTALADOS por asesor (aplicando regla: INSTALADO o PENDIENTE+PAGO='SÍ')
+    df_drive_temp = df_drive.copy()
+    df_drive_temp['ESTADO'] = df_drive_temp['ESTADO'].astype(str).str.strip()
+    df_drive_temp['PAGO'] = df_drive_temp['PAGO'].astype(str).str.strip()
+    
+    # Filtrar según la regla
+    df_instalados = df_drive_temp[
+        (df_drive_temp['ESTADO'] == 'INSTALADO') |
+        ((df_drive_temp['ESTADO'] == 'PENDIENTE') & (df_drive_temp['PAGO'] == 'SÍ'))
+    ]
+    instalados_por_asesor = df_instalados.groupby('ASESOR').size()
     
     # Contar CANCELADOS por asesor
     cancelados_por_asesor = df_drive[df_drive['ESTADO'] == 'CANCELADO'].groupby('ASESOR').size()
@@ -830,21 +866,9 @@ def get_cumplimiento_total_mes(mes_nombre):
         # Convertir FECHA a datetime
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         
-        # Para Noviembre, incluir Octubre + Noviembre
-        if mes_num == 11:
-            df_filtrado = df_drive[
-                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
-                (df_drive['ESTADO'] == 'INSTALADO')
-            ]
-        else:
-            # Para otros meses, solo ese mes
-            df_filtrado = df_drive[
-                (df_drive['FECHA'].dt.month == mes_num) &
-                (df_drive['ESTADO'] == 'INSTALADO')
-            ]
-        
-        # Contar total de instaladas
-        total_instaladas = len(df_filtrado)
+        # Aplicar regla: INSTALADO o (PENDIENTE+PAGO='SÍ')
+        es_noviembre = mes_num == 11
+        total_instaladas = count_instaladas_con_regla(df_drive, mes_num, es_noviembre)
         
         # Calcular cumplimiento
         cumplimiento_total = round((total_instaladas / total_metas * 100))
@@ -854,7 +878,8 @@ def get_cumplimiento_total_mes(mes_nombre):
         return 0
 
 def get_efectividad_mes(mes_nombre):
-    """Calcula la efectividad para un mes: INSTALADAS/(INSTALADAS+CANCELADAS)"""
+    """Calcula la efectividad para un mes: INSTALADAS/(INSTALADAS+CANCELADAS)
+    Donde INSTALADAS = INSTALADO o (PENDIENTE con PAGO='SÍ')"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -886,8 +911,8 @@ def get_efectividad_mes(mes_nombre):
                 (df_drive['FECHA'].dt.month == mes_num)
             ]
         
-        # Contar instaladas y canceladas
-        instaladas = len(df_filtrado[df_filtrado['ESTADO'] == 'INSTALADO'])
+        # Contar instaladas con regla y canceladas
+        instaladas = count_instaladas_con_regla(df_filtrado, mes_num, mes_num == 11)
         canceladas = len(df_filtrado[df_filtrado['ESTADO'] == 'CANCELADO'])
         
         # Calcular efectividad
@@ -902,7 +927,8 @@ def get_efectividad_mes(mes_nombre):
         return 0
 
 def get_ventas_mes(mes_nombre):
-    """Obtiene el total de instaladas para un mes específico del DRIVE"""
+    """Obtiene el total de instaladas para un mes específico del DRIVE
+    Donde INSTALADAS = INSTALADO o (PENDIENTE con PAGO='SÍ')"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -924,20 +950,8 @@ def get_ventas_mes(mes_nombre):
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         
         # Para Noviembre, sumar Octubre + Noviembre
-        if mes_num == 11:
-            df_filtrado = df_drive[
-                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
-                (df_drive['ESTADO'] == 'INSTALADO')
-            ]
-        else:
-            # Para otros meses, solo ese mes
-            df_filtrado = df_drive[
-                (df_drive['FECHA'].dt.month == mes_num) &
-                (df_drive['ESTADO'] == 'INSTALADO')
-            ]
-        
-        # Contar total
-        total = len(df_filtrado)
+        es_noviembre = mes_num == 11
+        total = count_instaladas_con_regla(df_drive, mes_num, es_noviembre)
         return total
     except Exception as e:
         return 0
@@ -985,11 +999,11 @@ if empleado_seleccionado == "Todos":
         else:
             df_mes_filtrado = df_drive_filtrado[df_drive_filtrado['FECHA'].dt.month == mes_num]
         
-        # Ventas (instaladas)
-        ventas_total = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'INSTALADO'])
+        # Ventas (instaladas) - aplicando regla: INSTALADO o (PENDIENTE+PAGO='SÍ')
+        ventas_total = count_instaladas_con_regla(df_mes_filtrado, mes_num, mes_num == 11)
         
-        # Efectividad
-        instaladas = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'INSTALADO'])
+        # Efectividad - usando la misma regla
+        instaladas = count_instaladas_con_regla(df_mes_filtrado, mes_num, mes_num == 11)
         canceladas = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'CANCELADO'])
         total_trans = instaladas + canceladas
         efectividad_mes = round((instaladas / total_trans * 100)) if total_trans > 0 else 0
