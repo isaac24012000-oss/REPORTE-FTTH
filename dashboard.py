@@ -400,6 +400,37 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     return len(df_instaladas)
 
 @st.cache_data(ttl=3600)
+def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
+    """Obtiene cantidad de transacciones PENDIENTE por asesor para un mes"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    # Limpiar espacios en los nombres de asesor
+    df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
+    asesor = asesor.strip()
+    
+    # Filtrar por mes y asesor
+    if 'MES' in df_drive.columns:
+        df_mes_asesor = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'] == asesor)]
+    else:
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        if mes_num is None:
+            return 0
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        df_mes_asesor = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'] == asesor)]
+    
+    # Contar PENDIENTE
+    df_mes_asesor['ESTADO'] = df_mes_asesor['ESTADO'].astype(str).str.strip()
+    pendientes = len(df_mes_asesor[df_mes_asesor['ESTADO'] == 'PENDIENTE'])
+    return pendientes
+
 def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     """Calcula la conversión por asesor: Total Transacciones (DRIVE) / Con Cobertura (MANTRA)
     Usando datos de DRIVE y MANTRA"""
@@ -1364,6 +1395,16 @@ df_detail = df[['Empleado', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 
 df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
 df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
 
+# Agregar columna de Pendientes solo para el mes actual (Enero)
+if mes == "Enero":
+    pendientes_list = []
+    for empleado in df_detail['Empleado']:
+        pendientes = get_pendientes_asesor_mes(empleado, mes)
+        pendientes_list.append(pendientes)
+    df_detail['Pendientes'] = pendientes_list
+else:
+    df_detail['Pendientes'] = 0
+
 # Ordenar por el criterio seleccionado
 if criterio_orden == "Conversión (Mayor a Menor)":
     df_detail = df_detail.sort_values('Efectividad', ascending=False).reset_index(drop=True)
@@ -1371,13 +1412,17 @@ else:
     df_detail = df_detail.sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
 
 # Crear tabla HTML personalizada con TODOS los datos
-html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Empleado</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
+if mes == "Enero":
+    html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Empleado</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
+else:
+    html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Empleado</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
 
 for idx, (_, row) in enumerate(df_detail.iterrows(), 1):
     empleado = row['Empleado']
     meta = int(row['Meta'])
     instaladas = int(row['Instaladas'])
     canceladas = int(row['Canceladas'])
+    pendientes = int(row['Pendientes']) if mes == "Enero" else 0
     cumpl = int(row['Cumplimiento'])
     efect = int(row['Efectividad'])
     
@@ -1392,16 +1437,29 @@ for idx, (_, row) in enumerate(df_detail.iterrows(), 1):
         estado = '<span class="status-poor">✗ Bajo</span>'
         fila_bg = 'background-color: #fef2f2;'
     
-    html_detail += f'''<tr style="{fila_bg}">
-        <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
-        <td style="font-weight: 600;">{empleado}</td>
-        <td style="text-align: center; font-weight: 600;">{meta}</td>
-        <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
-        <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
-        <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
-        <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
-        <td style="text-align: center;">{estado}</td>
-    </tr>'''
+    if mes == "Enero":
+        html_detail += f'''<tr style="{fila_bg}">
+            <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
+            <td style="font-weight: 600;">{empleado}</td>
+            <td style="text-align: center; font-weight: 600;">{meta}</td>
+            <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
+            <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
+            <td style="text-align: center; font-weight: 600; color: #f59e0b;">{pendientes}</td>
+            <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
+            <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
+            <td style="text-align: center;">{estado}</td>
+        </tr>'''
+    else:
+        html_detail += f'''<tr style="{fila_bg}">
+            <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
+            <td style="font-weight: 600;">{empleado}</td>
+            <td style="text-align: center; font-weight: 600;">{meta}</td>
+            <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
+            <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
+            <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
+            <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
+            <td style="text-align: center;">{estado}</td>
+        </tr>'''
 
 html_detail += '</tbody></table></div>'
 st.markdown(html_detail, unsafe_allow_html=True)
