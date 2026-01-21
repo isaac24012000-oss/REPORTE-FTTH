@@ -16,9 +16,10 @@ st.set_page_config(
 
 # ============= CARGA DE DATOS DEL EXCEL =============
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def load_mantra_data():
-    """Carga datos de la hoja MANTRA del archivo REPORTE FTTH.xlsx"""
+    """Carga datos de la hoja MANTRA del archivo REPORTE FTTH.xlsx
+    Actualizado: 21/01/2026 - Ahora filtra por MES en lugar de FECHA"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
     
     try:
@@ -27,7 +28,7 @@ def load_mantra_data():
     except Exception as e:
         return None
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     """Obtiene total de leads y conversión para un mes específico"""
     df_mantra = load_mantra_data()
@@ -57,7 +58,7 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     
     return total_leads, total_conversion
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Con Cobertura' para un mes específico"""
     df_mantra = load_mantra_data()
@@ -79,16 +80,13 @@ def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     
     return con_cobertura
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_cancelados_mes(mes_seleccionado="Noviembre"):
-    """Obtiene el conteo de cancelados para un mes específico
-    Nota: Para Noviembre, incluye cancelados de Octubre + Noviembre"""
+    """Obtiene el conteo de cancelados para un mes específico usando columna MES"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
         return 0
-    
-    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
     
     # Determinar número de mes
     mes_numeros = {
@@ -101,17 +99,26 @@ def get_cancelados_mes(mes_seleccionado="Noviembre"):
     if mes_num is None:
         return 0
     
-    # Para Noviembre, incluir Octubre + Noviembre
-    if mes_num == 11:
+    # Filtrar por MES column si existe, sino por FECHA
+    if 'MES' in df_drive.columns:
         df_mes = df_drive[
-            ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+            (df_drive['MES'] == mes_seleccionado) &
             (df_drive['ESTADO'] == 'CANCELADO')
         ]
     else:
-        df_mes = df_drive[
-            (df_drive['FECHA'].dt.month == mes_num) &
-            (df_drive['ESTADO'] == 'CANCELADO')
-        ]
+        # Fallback a FECHA
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        # Para Noviembre, incluir Octubre + Noviembre
+        if mes_num == 11:
+            df_mes = df_drive[
+                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+                (df_drive['ESTADO'] == 'CANCELADO')
+            ]
+        else:
+            df_mes = df_drive[
+                (df_drive['FECHA'].dt.month == mes_num) &
+                (df_drive['ESTADO'] == 'CANCELADO')
+            ]
     
     cancelados = len(df_mes)
     return cancelados
@@ -119,8 +126,8 @@ def get_cancelados_mes(mes_seleccionado="Noviembre"):
 @st.cache_data
 def get_instaladas_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de instaladas para un mes específico
-    Regla: INSTALADO o (PENDIENTE con PAGO='SÍ')
-    Nota: Para Noviembre, incluye Octubre + Noviembre"""
+    Regla: Solo INSTALADO (no incluye PENDIENTE)
+    Filtra por columna MES"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -146,16 +153,13 @@ def get_instaladas_mes(mes_seleccionado="Noviembre"):
     return instaladas
 
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_no_pago_mes(mes_seleccionado="Noviembre"):
-    """Obtiene el conteo de NO PAGO para un mes específico
-    Nota: Para Noviembre, incluye NO PAGO de Octubre + Noviembre"""
+    """Obtiene el conteo de NO PAGO para un mes específico usando columna MES"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
         return 0
-    
-    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
     
     # Determinar número de mes
     mes_numeros = {
@@ -171,22 +175,31 @@ def get_no_pago_mes(mes_seleccionado="Noviembre"):
     # Limpiar espacios en blanco en MOTIVO CANCELACIÓN
     df_drive['MOTIVO CANCELACIÓN'] = df_drive['MOTIVO CANCELACIÓN'].astype(str).str.strip()
     
-    # Para Noviembre, incluir Octubre + Noviembre
-    if mes_num == 11:
+    # Filtrar por MES column si existe, sino por FECHA
+    if 'MES' in df_drive.columns:
         df_mes = df_drive[
-            ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+            (df_drive['MES'] == mes_seleccionado) &
             (df_drive['MOTIVO CANCELACIÓN'] == 'NO PAGO')
         ]
     else:
-        df_mes = df_drive[
-            (df_drive['FECHA'].dt.month == mes_num) &
-            (df_drive['MOTIVO CANCELACIÓN'] == 'NO PAGO')
-        ]
+        # Fallback a FECHA
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        # Para Noviembre, incluir Octubre + Noviembre
+        if mes_num == 11:
+            df_mes = df_drive[
+                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11)) &
+                (df_drive['MOTIVO CANCELACIÓN'] == 'NO PAGO')
+            ]
+        else:
+            df_mes = df_drive[
+                (df_drive['FECHA'].dt.month == mes_num) &
+                (df_drive['MOTIVO CANCELACIÓN'] == 'NO PAGO')
+            ]
     
     no_pago = len(df_mes)
     return no_pago
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_no_responde_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'No Responde' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -208,7 +221,7 @@ def get_no_responde_mes(mes_seleccionado="Noviembre"):
     
     return no_responde
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_no_especifica_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'No Especifica' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -230,7 +243,7 @@ def get_no_especifica_mes(mes_seleccionado="Noviembre"):
     
     return no_especifica
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Sin Cobertura' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -252,7 +265,7 @@ def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
     
     return sin_cobertura
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def load_lista_metas():
     """Carga los datos de metas por mes de la hoja LISTA"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -263,7 +276,7 @@ def load_lista_metas():
     except Exception as e:
         return None
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=0)
 def load_drive_data():
     """Carga datos de la hoja DRIVE del archivo REPORTE FTTH.xlsx"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -316,7 +329,7 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     
     return len(df_instaladas)
 
-def calculate_drive_metrics(metas_dict, mes_filtro=None):
+def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
     """
     Calcula Cumplimiento y Efectividad por asesor usando datos de DRIVE
     
@@ -328,24 +341,23 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None):
     if df_drive is None or df_drive.empty:
         return {}
     
-    # Extraer FECHA, ASESOR, ESTADO, PAGO
-    df_drive = df_drive[['FECHA', 'ASESOR', 'ESTADO', 'PAGO']].copy()
+    # Extraer columnas necesarias
+    df_drive = df_drive[['FECHA', 'MES', 'ASESOR', 'ESTADO', 'PAGO']].copy()
     
-    # Filtrar por mes si se especifica
-    if mes_filtro:
+    # Filtrar por mes usando columna MES si está disponible
+    if mes_nombre and 'MES' in df_drive.columns:
+        df_drive = df_drive[df_drive['MES'] == mes_nombre]
+    elif mes_filtro:
+        # Fallback a FECHA si MES no existe
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         df_drive = df_drive[df_drive['FECHA'].dt.month == mes_filtro]
     
-    # Contar INSTALADOS por asesor (aplicando regla: INSTALADO o PENDIENTE+PAGO='SI')
+    # Contar INSTALADOS por asesor (solo INSTALADO, sin PENDIENTE)
     df_drive_temp = df_drive.copy()
     df_drive_temp['ESTADO'] = df_drive_temp['ESTADO'].astype(str).str.strip()
-    df_drive_temp['PAGO'] = df_drive_temp['PAGO'].astype(str).str.strip()
     
-    # Filtrar según la regla
-    df_instalados = df_drive_temp[
-        (df_drive_temp['ESTADO'] == 'INSTALADO') |
-        ((df_drive_temp['ESTADO'] == 'PENDIENTE') & (df_drive_temp['PAGO'] == 'SI'))
-    ]
+    # Solo INSTALADO
+    df_instalados = df_drive_temp[df_drive_temp['ESTADO'] == 'INSTALADO']
     instalados_por_asesor = df_instalados.groupby('ASESOR').size()
     
     # Contar CANCELADOS por asesor
@@ -401,8 +413,8 @@ def load_data(mes_seleccionado=None):
     }
     mes_num = mes_numeros.get(mes_seleccionado, None)
     
-    # Obtener métricas de DRIVE filtrando por mes
-    metricas = calculate_drive_metrics(metas_dict, mes_filtro=mes_num)
+    # Obtener métricas de DRIVE filtrando por mes (ahora con mes_nombre)
+    metricas = calculate_drive_metrics(metas_dict, mes_filtro=mes_num, mes_nombre=mes_seleccionado)
     
     # Construir DataFrame
     empleados = []
@@ -872,12 +884,9 @@ def get_cumplimiento_total_mes(mes_nombre):
         if total_metas == 0:
             return 0
         
-        # Convertir FECHA a datetime
-        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-        
-        # Aplicar regla: INSTALADO o (PENDIENTE+PAGO='SÍ')
+        # Aplicar regla: INSTALADO - pasando mes_nombre para filtrar por MES column
         es_noviembre = mes_num == 11
-        total_instaladas = count_instaladas_con_regla(df_drive, mes_num, es_noviembre)
+        total_instaladas = count_instaladas_con_regla(df_drive, mes_num, es_noviembre, mes_nombre)
         
         # Calcular cumplimiento
         cumplimiento_total = round((total_instaladas / total_metas * 100))
@@ -888,7 +897,7 @@ def get_cumplimiento_total_mes(mes_nombre):
 
 def get_efectividad_mes(mes_nombre):
     """Calcula la efectividad para un mes: INSTALADAS/(INSTALADAS+CANCELADAS)
-    Donde INSTALADAS = INSTALADO o (PENDIENTE con PAGO='SÍ')"""
+    Donde INSTALADAS = INSTALADO (sin PENDIENTE)"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -906,23 +915,37 @@ def get_efectividad_mes(mes_nombre):
         if mes_num is None:
             return 0
         
-        # Convertir FECHA a datetime
-        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-        
-        # Para Noviembre, incluir Octubre + Noviembre
-        if mes_num == 11:
-            df_filtrado = df_drive[
-                ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11))
-            ]
+        # Filtrar por MES en lugar de FECHA
+        if 'MES' in df_drive.columns:
+            df_filtrado = df_drive[df_drive['MES'] == mes_nombre]
         else:
-            # Para otros meses, solo ese mes
-            df_filtrado = df_drive[
-                (df_drive['FECHA'].dt.month == mes_num)
-            ]
+            # Fallback a FECHA si MES no existe
+            df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+            # Para Noviembre, incluir Octubre + Noviembre
+            if mes_num == 11:
+                df_filtrado = df_drive[
+                    ((df_drive['FECHA'].dt.month == 10) | (df_drive['FECHA'].dt.month == 11))
+                ]
+            else:
+                # Para otros meses, solo ese mes
+                df_filtrado = df_drive[
+                    (df_drive['FECHA'].dt.month == mes_num)
+                ]
         
-        # Contar instaladas con regla y canceladas
-        instaladas = count_instaladas_con_regla(df_filtrado, mes_num, mes_num == 11)
+        # Contar instaladas con regla (solo INSTALADO)
+        instaladas = count_instaladas_con_regla(df_filtrado, mes_num, mes_num == 11, mes_nombre)
         canceladas = len(df_filtrado[df_filtrado['ESTADO'] == 'CANCELADO'])
+        
+        # Calcular efectividad
+        total_transacciones = instaladas + canceladas
+        if total_transacciones > 0:
+            efectividad = round((instaladas / total_transacciones * 100))
+        else:
+            efectividad = 0
+        
+        return efectividad
+    except Exception as e:
+        return 0
         
         # Calcular efectividad
         total_transacciones = instaladas + canceladas
@@ -937,7 +960,8 @@ def get_efectividad_mes(mes_nombre):
 
 def get_ventas_mes(mes_nombre):
     """Obtiene el total de instaladas para un mes específico del DRIVE
-    Donde INSTALADAS = INSTALADO o (PENDIENTE con PAGO='SÍ')"""
+    Donde INSTALADAS = Solo INSTALADO (no incluye PENDIENTE)
+    Filtra por columna MES"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
