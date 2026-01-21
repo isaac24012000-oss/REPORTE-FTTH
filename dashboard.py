@@ -815,11 +815,11 @@ st.markdown("""
     .meta-valor {
         font-weight: 700;
         text-align: center;
-        border-radius: 8px;
-        padding: 3px 8px;
+        border-radius: 6px;
+        padding: 2px 6px;
         display: inline-block;
-        min-width: 40px;
-        font-size: 0.85em;
+        min-width: 32px;
+        font-size: 0.8em;
         background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
         color: white;
     }
