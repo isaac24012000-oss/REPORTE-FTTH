@@ -1340,10 +1340,7 @@ for idx, row in df_resumen.iterrows():
     html_resumen += '<tr>'
     for col in df_resumen.columns:
         valor = row[col]
-        if idx == 1:  # Fila de totales
-            html_resumen += f'<td style="font-weight: 800; color: #0066cc;">{valor}</td>'
-        else:
-            html_resumen += f'<td>{valor}</td>'
+        html_resumen += f'<td>{valor}</td>'
     html_resumen += '</tr>'
 
 html_resumen += '</tbody></table></div>'
