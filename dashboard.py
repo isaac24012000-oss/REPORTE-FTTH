@@ -10,15 +10,7 @@ st.set_page_config(
     page_title="Dashboard WORLD TEL - Cumplimiento Mensual",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
-    theme={
-        "base": "light",
-        "primaryColor": "#0066cc",
-        "backgroundColor": "#f0f4f8",
-        "secondaryBackgroundColor": "#ffffff",
-        "textColor": "#1e293b",
-        "font": "sans serif"
-    }
+    initial_sidebar_state="expanded"
 )
 # Actualizado 21/01/2026 - VENTAS TOTAL DEL MES: 472
 
