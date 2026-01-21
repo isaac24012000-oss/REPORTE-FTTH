@@ -400,6 +400,20 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     return len(df_instaladas)
 
 @st.cache_data(ttl=3600)
+def get_nombres_alternativos(asesor):
+    """Obtiene múltiples variantes del nombre del asesor para búsqueda flexible"""
+    nombres = [asesor.strip()]
+    # Agregar variante sin números al final (ej: ST2_VTP -> ST_VTP)
+    import re
+    nombre_sin_num = re.sub(r'(\d+)(_VTP)$', r'\2', asesor)
+    if nombre_sin_num != asesor:
+        nombres.append(nombre_sin_num)
+    # Agregar variante con número (ej: ST_VTP -> ST2_VTP)
+    nombre_con_num = re.sub(r'(_VTP)$', r'2_VTP', asesor.replace('2_VTP', '_VTP'))
+    if nombre_con_num != asesor and '2_VTP' in nombre_con_num:
+        nombres.append(nombre_con_num)
+    return nombres
+
 def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
     """Obtiene cantidad de transacciones PENDIENTE por asesor para un mes"""
     df_drive = load_drive_data()
@@ -411,9 +425,12 @@ def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
     df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
     asesor = asesor.strip()
     
-    # Filtrar por mes y asesor
+    # Obtener nombres alternativos
+    nombres_alternativos = get_nombres_alternativos(asesor)
+    
+    # Filtrar por mes y asesor (probando múltiples nombres)
     if 'MES' in df_drive.columns:
-        df_mes_asesor = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'] == asesor)]
+        df_mes_asesor = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'].isin(nombres_alternativos))]
     else:
         mes_numeros = {
             'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
@@ -424,7 +441,7 @@ def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
         if mes_num is None:
             return 0
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-        df_mes_asesor = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'] == asesor)]
+        df_mes_asesor = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'].isin(nombres_alternativos))]
     
     # Contar PENDIENTE
     df_mes_asesor['ESTADO'] = df_mes_asesor['ESTADO'].astype(str).str.strip()
@@ -445,8 +462,21 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
     asesor = asesor.strip()
     
+    # Obtener nombres alternativos
+    nombres_alternativos = get_nombres_alternativos(asesor)
+    
     # Obtener Con Cobertura del asesor en MANTRA para el mes
-    df_mes_mantra = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'] == asesor)].copy()
+    # Probar múltiples nombres
+    df_mes_mantra = None
+    for nombre in nombres_alternativos:
+        df_temp = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'] == nombre)].copy()
+        if not df_temp.empty:
+            df_mes_mantra = df_temp
+            break
+    
+    if df_mes_mantra is None or df_mes_mantra.empty:
+        return 0
+    
     df_mes_mantra['NIVEL 2'] = df_mes_mantra['NIVEL 2'].astype(str).str.strip()
     con_cobertura_asesor = len(df_mes_mantra[df_mes_mantra['NIVEL 2'] == 'Con Cobertura'])
     
@@ -456,7 +486,7 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     # Obtener Total de Transacciones del asesor en DRIVE
     # Usar columna MES si existe, sino usar FECHA
     if 'MES' in df_drive.columns:
-        df_mes_drive = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'] == asesor)]
+        df_mes_drive = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'].isin(nombres_alternativos))]
     else:
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         mes_numeros = {
@@ -467,7 +497,7 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
         mes_num = mes_numeros.get(mes_seleccionado, None)
         if mes_num is None:
             return 0
-        df_mes_drive = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'] == asesor)]
+        df_mes_drive = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'].isin(nombres_alternativos))]
     
     total_transacciones_asesor = len(df_mes_drive)
     
