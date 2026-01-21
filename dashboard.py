@@ -76,21 +76,21 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     if con_cobertura == 0:
         return 0
     
-    # Obtener Total de Transacciones de DRIVE para el mes (solo por mes, sin restricción de año)
-    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-    
-    mes_numeros = {
-        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
-        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
-        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-    }
-    mes_num = mes_numeros.get(mes_seleccionado, None)
-    
-    if mes_num is None:
-        return 0
-    
-    # Filtrar solo por mes (sin restricción de año)
-    df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num]
+    # Obtener Total de Transacciones de DRIVE para el mes
+    # Usar columna MES si existe, sino usar FECHA
+    if 'MES' in df_drive.columns:
+        df_mes_drive = df_drive[df_drive['MES'] == mes_seleccionado]
+    else:
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        if mes_num is None:
+            return 0
+        df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num]
     
     total_transacciones = len(df_mes_drive)
     
