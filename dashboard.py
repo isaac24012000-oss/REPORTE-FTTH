@@ -1405,64 +1405,84 @@ if mes == "Enero":
 else:
     df_detail['Pendientes'] = 0
 
+# Separar en Full Time (meta >= 55) y Part Time (meta < 55)
+df_fulltime = df_detail[df_detail['Meta'] >= 55].copy()
+df_parttime = df_detail[df_detail['Meta'] < 55].copy()
+
 # Ordenar por el criterio seleccionado
 if criterio_orden == "Conversión (Mayor a Menor)":
-    df_detail = df_detail.sort_values('Efectividad', ascending=False).reset_index(drop=True)
+    df_fulltime = df_fulltime.sort_values('Efectividad', ascending=False).reset_index(drop=True)
+    df_parttime = df_parttime.sort_values('Efectividad', ascending=False).reset_index(drop=True)
 else:
-    df_detail = df_detail.sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
+    df_fulltime = df_fulltime.sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
+    df_parttime = df_parttime.sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
 
-# Crear tabla HTML personalizada con TODOS los datos
-if mes == "Enero":
-    html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Empleado</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
-else:
-    html_detail = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Empleado</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
-
-for idx, (_, row) in enumerate(df_detail.iterrows(), 1):
-    empleado = row['Empleado']
-    meta = int(row['Meta'])
-    instaladas = int(row['Instaladas'])
-    canceladas = int(row['Canceladas'])
-    pendientes = int(row['Pendientes']) if mes == "Enero" else 0
-    cumpl = int(row['Cumplimiento'])
-    efect = int(row['Efectividad'])
-    
-    # Determinar estado
-    if cumpl >= 70:
-        estado = '<span class="status-excellent">✓ Excelente</span>'
-        fila_bg = 'background-color: #f0fdf4;'
-    elif cumpl >= 40:
-        estado = '<span class="status-good">~ Bueno</span>'
-        fila_bg = 'background-color: #fffbeb;'
-    else:
-        estado = '<span class="status-poor">✗ Bajo</span>'
-        fila_bg = 'background-color: #fef2f2;'
-    
+# Función para generar tabla HTML
+def generar_tabla_detalle(df_tabla, tipo_empleado):
     if mes == "Enero":
-        html_detail += f'''<tr style="{fila_bg}">
-            <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
-            <td style="font-weight: 600;">{empleado}</td>
-            <td style="text-align: center; font-weight: 600;">{meta}</td>
-            <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
-            <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
-            <td style="text-align: center; font-weight: 600; color: #f59e0b;">{pendientes}</td>
-            <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
-            <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
-            <td style="text-align: center;">{estado}</td>
-        </tr>'''
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Empleado</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
     else:
-        html_detail += f'''<tr style="{fila_bg}">
-            <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
-            <td style="font-weight: 600;">{empleado}</td>
-            <td style="text-align: center; font-weight: 600;">{meta}</td>
-            <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
-            <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
-            <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
-            <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
-            <td style="text-align: center;">{estado}</td>
-        </tr>'''
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Empleado</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
 
-html_detail += '</tbody></table></div>'
-st.markdown(html_detail, unsafe_allow_html=True)
+    for idx, (_, row) in enumerate(df_tabla.iterrows(), 1):
+        empleado = row['Empleado']
+        meta = int(row['Meta'])
+        instaladas = int(row['Instaladas'])
+        canceladas = int(row['Canceladas'])
+        pendientes = int(row['Pendientes']) if mes == "Enero" else 0
+        cumpl = int(row['Cumplimiento'])
+        efect = int(row['Efectividad'])
+        
+        # Determinar estado
+        if cumpl >= 70:
+            estado = '<span class="status-excellent">✓ Excelente</span>'
+            fila_bg = 'background-color: #f0fdf4;'
+        elif cumpl >= 40:
+            estado = '<span class="status-good">~ Bueno</span>'
+            fila_bg = 'background-color: #fffbeb;'
+        else:
+            estado = '<span class="status-poor">✗ Bajo</span>'
+            fila_bg = 'background-color: #fef2f2;'
+        
+        if mes == "Enero":
+            html_tabla += f'''<tr style="{fila_bg}">
+                <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
+                <td style="font-weight: 600;">{empleado}</td>
+                <td style="text-align: center; font-weight: 600;">{meta}</td>
+                <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
+                <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
+                <td style="text-align: center; font-weight: 600; color: #f59e0b;">{pendientes}</td>
+                <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
+                <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
+                <td style="text-align: center;">{estado}</td>
+            </tr>'''
+        else:
+            html_tabla += f'''<tr style="{fila_bg}">
+                <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
+                <td style="font-weight: 600;">{empleado}</td>
+                <td style="text-align: center; font-weight: 600;">{meta}</td>
+                <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
+                <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
+                <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
+                <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
+                <td style="text-align: center;">{estado}</td>
+            </tr>'''
+
+    html_tabla += '</tbody></table></div>'
+    return html_tabla
+
+# Mostrar tabla Full Time
+if not df_fulltime.empty:
+    st.markdown("#### 💼 Empleados Full Time (8 horas - Meta ≥ 55)")
+    html_fulltime = generar_tabla_detalle(df_fulltime, "Full Time")
+    st.markdown(html_fulltime, unsafe_allow_html=True)
+    st.markdown('<div style="margin: 15px 0;"></div>', unsafe_allow_html=True)
+
+# Mostrar tabla Part Time
+if not df_parttime.empty:
+    st.markdown("#### ⏢ Empleados Part Time (4 horas - Meta < 55)")
+    html_parttime = generar_tabla_detalle(df_parttime, "Part Time")
+    st.markdown(html_parttime, unsafe_allow_html=True)
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
