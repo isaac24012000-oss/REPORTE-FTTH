@@ -1293,12 +1293,12 @@ with col1:
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Empleado</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table style="table-layout: fixed;"><thead><tr><th style="width: 25px;">Pos</th><th style="width: 120px;">Empleado</th><th style="width: 60px; text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
         empleado = row['Empleado']
         meta = int(row['Meta'])
-        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
+        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
     
     # Agregar fila de totales
     total_meta = int(tabla_meta['Meta'].sum())
