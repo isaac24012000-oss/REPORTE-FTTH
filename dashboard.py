@@ -1399,7 +1399,7 @@ with col3:
             showgrid=True,
             zeroline=False,
             tickfont=dict(size=11, color='#64748b'),
-            range=[0, 110],
+            range=[0, 130],
             ticksuffix='%'
         ),
         yaxis=dict(
