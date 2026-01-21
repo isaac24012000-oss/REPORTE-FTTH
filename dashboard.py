@@ -1293,16 +1293,16 @@ with col1:
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Empleado</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table style="border-collapse: collapse;"><thead><tr style="padding: 0;"><th style="padding: 6px 8px;">Pos</th><th style="padding: 6px 8px;">Empleado</th><th style="padding: 6px 8px; text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
         empleado = row['Empleado']
         meta = int(row['Meta'])
-        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
+        html_tabla += f'<tr style="padding: 0;"><td style="font-weight: 700; text-align: center; color: #0066cc; padding: 6px 8px;">#{idx}</td><td style="font-weight: 600; padding: 6px 8px;">{empleado}</td><td style="text-align: center; padding: 6px 8px;"><div class="meta-valor">{meta}</div></td></tr>'
     
     # Agregar fila de totales
     total_meta = int(tabla_meta['Meta'].sum())
-    html_tabla += f'<tr style="background-color: #e0e7ff; font-weight: 700; border-top: 2px solid #0066cc;"><td style="text-align: center; color: #0066cc;">∑</td><td style="font-weight: 700; color: #0066cc;">TOTAL</td><td style="text-align: center; font-weight: 700; color: #0066cc;"><div class="meta-valor" style="background-color: #0066cc; color: white;">{total_meta}</div></td></tr>'
+    html_tabla += f'<tr style="background-color: #e0e7ff; font-weight: 700; border-top: 2px solid #0066cc; padding: 0;"><td style="text-align: center; color: #0066cc; padding: 6px 8px;">∑</td><td style="font-weight: 700; color: #0066cc; padding: 6px 8px;">TOTAL</td><td style="text-align: center; font-weight: 700; color: #0066cc; padding: 6px 8px;"><div class="meta-valor" style="background-color: #0066cc; color: white;">{total_meta}</div></td></tr>'
     
     html_tabla += '</tbody></table></div>'
     
