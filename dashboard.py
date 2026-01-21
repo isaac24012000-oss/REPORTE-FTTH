@@ -418,23 +418,20 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
         return 0
     
     # Obtener Total de Transacciones del asesor en DRIVE
-    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-    
-    mes_numeros = {
-        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
-        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
-        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-    }
-    mes_num = mes_numeros.get(mes_seleccionado, None)
-    
-    if mes_num is None:
-        return 0
-    
-    # Filtrar por mes y asesor (sin restricción de año)
-    df_mes_drive = df_drive[
-        (df_drive['FECHA'].dt.month == mes_num) & 
-        (df_drive['ASESOR'] == asesor)
-    ]
+    # Usar columna MES si existe, sino usar FECHA
+    if 'MES' in df_drive.columns:
+        df_mes_drive = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'] == asesor)]
+    else:
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        if mes_num is None:
+            return 0
+        df_mes_drive = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'] == asesor)]
     
     total_transacciones_asesor = len(df_mes_drive)
     
