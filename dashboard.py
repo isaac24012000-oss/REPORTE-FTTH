@@ -1585,7 +1585,8 @@ for dato in datos_meses:
     cob_pct = f'{int(dato["Cober"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
     resumen_data['%Cob'].append(cob_pct)
     resumen_data['Contr'].append(dato['Contr'])
-    conv_pct = f'{int(dato["Contr"]/dato["Leads"]*100) if dato["Leads"] > 0 else 0}%'
+    # Usar la fórmula correcta de conversión: Total Transacciones DRIVE / Con Cobertura MANTRA
+    conv_pct = f'{get_conversion_mantra_mes(dato["Mes"])}%'
     resumen_data['%Conv'].append(conv_pct)
     resumen_data['Real'].append('51%')
     resumen_data['Cancel'].append(dato['Cancel'])
