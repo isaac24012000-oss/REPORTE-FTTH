@@ -1293,12 +1293,16 @@ with col1:
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 10%;">Pos</th><th style="width: 50%;">Empleado</th><th style="width: 40%; text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Empleado</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
         empleado = row['Empleado']
         meta = int(row['Meta'])
         html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
+    
+    # Agregar fila de totales
+    total_meta = int(tabla_meta['Meta'].sum())
+    html_tabla += f'<tr style="background-color: #e0e7ff; font-weight: 700; border-top: 2px solid #0066cc;"><td style="text-align: center; color: #0066cc;">∑</td><td style="font-weight: 700; color: #0066cc;">TOTAL</td><td style="text-align: center; font-weight: 700; color: #0066cc;"><div class="meta-valor" style="background-color: #0066cc; color: white;">{total_meta}</div></td></tr>'
     
     html_tabla += '</tbody></table></div>'
     
