@@ -400,8 +400,8 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     if df_mantra is None or df_mantra.empty:
         return 0
     
-    # Filtrar por mes y por asesor
-    df_mes = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['ASESOR'] == asesor)]
+    # Filtrar por mes y por asesor (columna se llama 'Agente' en MANTRA)
+    df_mes = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'] == asesor)]
     
     if df_mes.empty:
         return 0
