@@ -59,6 +59,41 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     return total_leads, total_conversion
 
 @st.cache_data(ttl=0)
+def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
+    """Calcula la conversión real: Contrato OK / Con Cobertura
+    Usando datos de MANTRA"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado]
+    
+    if df_mes.empty:
+        return 0
+    
+    # Limpiar espacios en NIVEL 2 y NIVEL 3
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
+    
+    # Con Cobertura
+    con_cobertura = len(df_mes[df_mes['NIVEL 2'] == 'Con Cobertura'])
+    
+    if con_cobertura == 0:
+        return 0
+    
+    # Contrato OK (dentro de Con Cobertura)
+    contrato_ok = len(df_mes[
+        (df_mes['NIVEL 2'] == 'Con Cobertura') & 
+        (df_mes['NIVEL 3'] == 'Contrato OK')
+    ])
+    
+    # Conversión = Contrato OK / Con Cobertura
+    conversion_pct = round((contrato_ok / con_cobertura * 100)) if con_cobertura > 0 else 0
+    return conversion_pct
+
+@st.cache_data(ttl=0)
 def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Con Cobertura' para un mes específico"""
     df_mantra = load_mantra_data()
@@ -356,7 +391,43 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     
     return len(df_instaladas)
 
+@st.cache_data(ttl=0)
+def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
+    """Calcula la conversión por asesor: Contrato OK / Con Cobertura
+    Usando datos de MANTRA"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Filtrar por mes y por asesor
+    df_mes = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['ASESOR'] == asesor)]
+    
+    if df_mes.empty:
+        return 0
+    
+    # Limpiar espacios en NIVEL 2 y NIVEL 3
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
+    
+    # Con Cobertura
+    con_cobertura = len(df_mes[df_mes['NIVEL 2'] == 'Con Cobertura'])
+    
+    if con_cobertura == 0:
+        return 0
+    
+    # Contrato OK (dentro de Con Cobertura)
+    contrato_ok = len(df_mes[
+        (df_mes['NIVEL 2'] == 'Con Cobertura') & 
+        (df_mes['NIVEL 3'] == 'Contrato OK')
+    ])
+    
+    # Conversión = Contrato OK / Con Cobertura
+    conversion_pct = round((contrato_ok / con_cobertura * 100)) if con_cobertura > 0 else 0
+    return conversion_pct
+
 def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
+
     """
     Calcula Cumplimiento y Efectividad por asesor usando datos de DRIVE
     
@@ -399,9 +470,8 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
         # Cumplimiento = INSTALADAS / META
         cumplimiento = round((instalados / meta * 100) if meta > 0 else 0)
         
-        # Efectividad = INSTALADAS / (INSTALADAS + CANCELADAS)
-        total_transacciones = instalados + cancelados
-        efectividad = round((instalados / total_transacciones * 100) if total_transacciones > 0 else 0)
+        # Efectividad = Nueva fórmula: Contrato OK / Con Cobertura (de MANTRA)
+        efectividad = get_conversion_asesor_mes(asesor, mes_nombre)
         
         metricas[asesor] = {
             'instalados': instalados,
@@ -1080,11 +1150,8 @@ if empleado_seleccionado == "Todos":
         # Ventas (instaladas) - aplicando regla: Solo INSTALADO
         ventas_total = count_instaladas_con_regla(df_mes_filtrado, mes_num, mes_num == 11, mes)
         
-        # Efectividad - usando la misma regla
-        instaladas = count_instaladas_con_regla(df_mes_filtrado, mes_num, mes_num == 11, mes)
-        canceladas = len(df_mes_filtrado[df_mes_filtrado['ESTADO'] == 'CANCELADO'])
-        total_trans = instaladas + canceladas
-        efectividad_mes = round((instaladas / total_trans * 100)) if total_trans > 0 else 0
+        # Efectividad - Nueva fórmula: Contrato OK / Con Cobertura (de MANTRA)
+        efectividad_mes = get_conversion_mantra_mes(mes)
         
         # Cumplimiento - calcular contra TODAS las metas del mes
         df_lista = load_lista_metas()
