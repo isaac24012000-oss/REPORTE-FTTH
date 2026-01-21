@@ -815,11 +815,11 @@ st.markdown("""
     .meta-valor {
         font-weight: 700;
         text-align: center;
-        border-radius: 8px;
-        padding: 3px 8px;
+        border-radius: 6px;
+        padding: 2px 4px;
         display: inline-block;
-        min-width: 40px;
-        font-size: 0.85em;
+        min-width: 32px;
+        font-size: 0.8em;
         background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
         color: white;
     }
@@ -1293,7 +1293,7 @@ with col1:
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table style="table-layout: fixed;"><thead><tr><th style="width: 25px;">Pos</th><th style="width: 120px;">Empleado</th><th style="width: 60px; text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table style="table-layout: fixed;"><thead><tr><th style="width: 20px;">Pos</th><th style="width: 100px;">Empleado</th><th style="width: 50px; text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
         empleado = row['Empleado']
