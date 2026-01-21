@@ -88,10 +88,10 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     if mes_num is None:
         return 0
     
-    # Filtrar por mes y año (2025)
+    # Filtrar por mes y año (2026)
     df_mes_drive = df_drive[
         (df_drive['FECHA'].dt.month == mes_num) & 
-        (df_drive['FECHA'].dt.year == 2025)
+        (df_drive['FECHA'].dt.year == 2026)
     ]
     
     total_drive = len(df_mes_drive)
