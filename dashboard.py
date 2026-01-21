@@ -60,8 +60,8 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
 
 @st.cache_data(ttl=3600)
 def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
-    """Calcula la conversión: Con Cobertura (MANTRA) / Total Transacciones (DRIVE)
-    = Registros con cobertura en MANTRA / Total de transacciones en DRIVE"""
+    """Calcula la conversión: Total Transacciones (DRIVE) / Con Cobertura (MANTRA)
+    = Total transacciones en DRIVE / Registros con cobertura en MANTRA"""
     df_mantra = load_mantra_data()
     df_drive = load_drive_data()
     
@@ -73,11 +73,12 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     df_mes_mantra['NIVEL 2'] = df_mes_mantra['NIVEL 2'].astype(str).str.strip()
     con_cobertura = len(df_mes_mantra[df_mes_mantra['NIVEL 2'] == 'Con Cobertura'])
     
+    if con_cobertura == 0:
+        return 0
+    
     # Obtener Total de Transacciones de DRIVE para el mes
-    # Convertir FECHA a datetime
     df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
     
-    # Mapping de mes a número
     mes_numeros = {
         'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
         'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
@@ -94,13 +95,13 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
         (df_drive['FECHA'].dt.year == 2026)
     ]
     
-    total_drive = len(df_mes_drive)
+    total_transacciones = len(df_mes_drive)
     
-    if total_drive == 0:
+    if total_transacciones == 0:
         return 0
     
-    # Conversión = Con Cobertura / Total Transacciones
-    conversion_pct = round((con_cobertura / total_drive * 100)) if total_drive > 0 else 0
+    # Conversión = Total Transacciones / Con Cobertura
+    conversion_pct = round((total_transacciones / con_cobertura * 100)) if con_cobertura > 0 else 0
     return conversion_pct
 
 @st.cache_data(ttl=3600)
@@ -403,7 +404,7 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
 
 @st.cache_data(ttl=3600)
 def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
-    """Calcula la conversión por asesor: (INSTALADAS + CANCELADAS + PENDIENTES) / Con Cobertura del asesor
+    """Calcula la conversión por asesor: Total Transacciones (DRIVE) / Con Cobertura (MANTRA)
     Usando datos de DRIVE y MANTRA"""
     df_mantra = load_mantra_data()
     df_drive = load_drive_data()
@@ -419,21 +420,26 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     if con_cobertura_asesor == 0:
         return 0
     
-    # Obtener Total de Transacciones del asesor en DRIVE (INSTALADAS + CANCELADAS + PENDIENTES)
-    if 'MES' in df_drive.columns:
-        df_mes_drive = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'] == asesor)]
-    else:
-        # Fallback a FECHA
-        mes_numeros = {
-            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
-            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
-            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-        }
-        mes_num = mes_numeros.get(mes_seleccionado, None)
-        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-        df_mes_drive = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'] == asesor)]
+    # Obtener Total de Transacciones del asesor en DRIVE
+    df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
     
-    # Contar todas las transacciones (INSTALADAS + CANCELADAS + PENDIENTES)
+    mes_numeros = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    mes_num = mes_numeros.get(mes_seleccionado, None)
+    
+    if mes_num is None:
+        return 0
+    
+    # Filtrar por mes, año y asesor
+    df_mes_drive = df_drive[
+        (df_drive['FECHA'].dt.month == mes_num) & 
+        (df_drive['FECHA'].dt.year == 2026) &
+        (df_drive['ASESOR'] == asesor)
+    ]
+    
     total_transacciones_asesor = len(df_mes_drive)
     
     if total_transacciones_asesor == 0:
