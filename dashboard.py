@@ -1058,9 +1058,9 @@ for valor, label, col in kpis:
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
-# Sección principal con 3 columnas mejorada
+# Sección principal con 3 columnas mejorada - RESPONSIVO
 st.markdown("### 📊 Análisis de Desempeño por Agente")
-col1, col2, col3 = st.columns([0.8, 1.6, 1.6], gap="small")
+col1, col2, col3 = st.columns([1.2, 1.4, 1.4], gap="medium")
 
 # Columna 1: Meta Mensual
 with col1:
