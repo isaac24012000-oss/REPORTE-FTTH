@@ -16,7 +16,7 @@ st.set_page_config(
 
 # ============= CARGA DE DATOS DEL EXCEL =============
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def load_mantra_data():
     """Carga datos de la hoja MANTRA del archivo REPORTE FTTH.xlsx
     Actualizado: 21/01/2026 - Ahora filtra por MES en lugar de FECHA"""
@@ -28,7 +28,7 @@ def load_mantra_data():
     except Exception as e:
         return None
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     """Obtiene total de leads y conversión para un mes específico"""
     df_mantra = load_mantra_data()
@@ -58,7 +58,7 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     
     return total_leads, total_conversion
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     """Calcula la conversión: Ventas Generales / Con Cobertura
     = Total de transacciones DRIVE / Con Cobertura MANTRA"""
@@ -96,7 +96,7 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     conversion_pct = round((ventas_generales / con_cobertura * 100)) if con_cobertura > 0 else 0
     return conversion_pct
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Con Cobertura' para un mes específico"""
     df_mantra = load_mantra_data()
@@ -118,7 +118,7 @@ def get_con_cobertura_count(mes_seleccionado="Noviembre"):
     
     return con_cobertura
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_cancelados_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de cancelados para un mes específico usando columna MES"""
     df_drive = load_drive_data()
@@ -190,7 +190,7 @@ def get_instaladas_mes(mes_seleccionado="Noviembre"):
     
     return instaladas
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_ventas_generales_mes(mes_seleccionado="Noviembre"):
     """Obtiene el total de TODAS las transacciones del mes
     = INSTALADAS + PENDIENTES + CANCELADAS
@@ -218,7 +218,7 @@ def get_ventas_generales_mes(mes_seleccionado="Noviembre"):
     total_transacciones = len(df_mes)
     return total_transacciones
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_no_pago_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de NO PAGO para un mes específico usando columna MES"""
     df_drive = load_drive_data()
@@ -264,7 +264,7 @@ def get_no_pago_mes(mes_seleccionado="Noviembre"):
     no_pago = len(df_mes)
     return no_pago
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_no_responde_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'No Responde' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -286,7 +286,7 @@ def get_no_responde_mes(mes_seleccionado="Noviembre"):
     
     return no_responde
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_no_especifica_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'No Especifica' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -308,7 +308,7 @@ def get_no_especifica_mes(mes_seleccionado="Noviembre"):
     
     return no_especifica
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
     """Obtiene el conteo de 'Sin Cobertura' para un mes específico desde MANTRA"""
     df_mantra = load_mantra_data()
@@ -330,7 +330,7 @@ def get_sin_cobertura_mes(mes_seleccionado="Noviembre"):
     
     return sin_cobertura
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def load_lista_metas():
     """Carga los datos de metas por mes de la hoja LISTA"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -341,7 +341,7 @@ def load_lista_metas():
     except Exception as e:
         return None
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def load_drive_data():
     """Carga datos de la hoja DRIVE del archivo REPORTE FTTH.xlsx"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -394,7 +394,7 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     
     return len(df_instaladas)
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     """Calcula la conversión por asesor: Ventas del Asesor / Con Cobertura del Asesor
     Usando datos de DRIVE y MANTRA"""
