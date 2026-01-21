@@ -60,8 +60,8 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
 
 @st.cache_data(ttl=3600)
 def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
-    """Calcula la conversión: Total Transacciones (DRIVE) / Con Cobertura (MANTRA)
-    = Total de transacciones en DRIVE / Registros con cobertura en MANTRA"""
+    """Calcula la conversión: Con Cobertura (MANTRA) / Total Transacciones (DRIVE)
+    = Registros con cobertura en MANTRA / Total de transacciones en DRIVE"""
     df_mantra = load_mantra_data()
     df_drive = load_drive_data()
     
@@ -89,11 +89,11 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     
     total_drive = len(df_mes_drive)
     
-    if con_cobertura == 0:
+    if total_drive == 0:
         return 0
     
-    # Conversión = Total Transacciones / Con Cobertura
-    conversion_pct = round((total_drive / con_cobertura * 100)) if con_cobertura > 0 else 0
+    # Conversión = Con Cobertura / Total Transacciones
+    conversion_pct = round((con_cobertura / total_drive * 100)) if total_drive > 0 else 0
     return conversion_pct
 
 @st.cache_data(ttl=3600)
@@ -396,7 +396,7 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
 
 @st.cache_data(ttl=3600)
 def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
-    """Calcula la conversión por asesor: Total Transacciones (DRIVE) / Con Cobertura (MANTRA)
+    """Calcula la conversión por asesor: Con Cobertura (MANTRA) / Total Transacciones (DRIVE)
     Usando datos de DRIVE y MANTRA"""
     df_mantra = load_mantra_data()
     df_drive = load_drive_data()
@@ -425,11 +425,11 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     
     total_drive_asesor = len(df_mes_drive)
     
-    if con_cobertura_asesor == 0:
+    if total_drive_asesor == 0:
         return 0
     
-    # Conversión = Total Transacciones del Asesor / Con Cobertura del Asesor
-    conversion_pct = round((total_drive_asesor / con_cobertura_asesor * 100)) if con_cobertura_asesor > 0 else 0
+    # Conversión = Con Cobertura del Asesor / Total Transacciones del Asesor
+    conversion_pct = round((con_cobertura_asesor / total_drive_asesor * 100)) if total_drive_asesor > 0 else 0
     return conversion_pct
 
 def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
