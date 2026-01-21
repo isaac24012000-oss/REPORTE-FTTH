@@ -1384,14 +1384,14 @@ with col3:
             opacity=0.85
         ),
         text=df_sorted_eff['Efectividad'].apply(lambda x: f'{x}%'),
-        textposition='inside',
-        textfont=dict(size=12, color='white', family='Arial', weight='bold'),
+        textposition='outside',
+        textfont=dict(size=13, color='#1e293b', family='Arial', weight='bold'),
         hovertemplate='<b>%{y}</b><br><b>Efectividad:</b> <b>%{x}%</b><extra></extra>',
         name=''
     ))
     fig_eff.update_layout(
         height=580,
-        margin=dict(l=160, r=50, t=20, b=20),
+        margin=dict(l=200, r=50, t=20, b=20),
         showlegend=False,
         xaxis_title="",
         xaxis=dict(
