@@ -279,11 +279,10 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
     Cuenta instaladas aplicando regla para todos los meses.
     
     Regla de VENTAS TOTAL DEL MES:
-    - Incluye INSTALADO (todos)
-    - Incluye PENDIENTE solo si PAGO='SI'
-    - Excluye CANCELADO
+    - Solo INSTALADO
+    - Sin considerar PENDIENTE
     
-    Fórmula: COUNT(ESTADO='INSTALADO') + COUNT(ESTADO='PENDIENTE' AND PAGO='SI')
+    Fórmula: COUNT(ESTADO='INSTALADO')
     
     Args:
         df: DataFrame filtrado por mes
@@ -297,7 +296,6 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
     df_temp = df.copy()
     df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
     df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
-    df_temp['PAGO'] = df_temp['PAGO'].astype(str).str.strip()
     
     # Filtrar por mes
     if fecha_mes_es_noviembre:
@@ -307,12 +305,9 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
     else:
         df_mes = df_temp[df_temp['FECHA'].dt.month == fecha_mes_num]
     
-    # Aplicar regla: INSTALADO o (PENDIENTE + PAGO='SI')
-    # Esto forma VENTAS TOTAL DEL MES
-    df_instaladas = df_mes[
-        (df_mes['ESTADO'] == 'INSTALADO') |
-        ((df_mes['ESTADO'] == 'PENDIENTE') & (df_mes['PAGO'] == 'SI'))
-    ]
+    # Aplicar regla: Solo INSTALADO
+    # Sin contar PENDIENTE
+    df_instaladas = df_mes[df_mes['ESTADO'] == 'INSTALADO']
     
     return len(df_instaladas)
 
