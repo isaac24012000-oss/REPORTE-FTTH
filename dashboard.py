@@ -1610,210 +1610,249 @@ for dato in datos_meses:
 
 df_resumen = pd.DataFrame(resumen_data)
 
-# Crear tabla HTML personalizada para resumen CON EXPANDERS
+# Crear tabla HTML personalizada para resumen CON EXPANDERS USANDO CSS PURO
 html_resumen = '''
-<div class="resumen-tabla">
+<div class="resumen-tabla-expandable">
 <style>
-    .expandable-row {
+    .resumen-tabla-expandable {
+        width: 100%;
+    }
+    
+    .resumen-tabla-expandable table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .resumen-tabla-expandable thead tr {
+        background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+        color: white;
+    }
+    
+    .resumen-tabla-expandable th {
+        padding: 10px 6px;
+        text-align: center;
+        font-size: 0.7em;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .mes-toggle-checkbox {
+        display: none;
+    }
+    
+    .mes-row {
+        background-color: #f0f9ff;
         cursor: pointer;
-        background-color: #f0f9ff !important;
+        user-select: none;
     }
-    .expandable-row:hover {
-        background-color: #e0f2fe !important;
+    
+    .mes-row:hover {
+        background-color: #e0f2fe;
     }
+    
+    .mes-row td {
+        padding: 10px 6px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85em;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .mes-row td:first-child {
+        text-align: left;
+        font-weight: 700;
+        color: #0066cc;
+    }
+    
     .toggle-icon {
         display: inline-block;
         width: 20px;
         text-align: center;
         font-weight: bold;
         color: #0066cc;
+        transition: transform 0.3s ease;
     }
+    
     .detail-row {
         display: none;
-        background-color: #f9fafc;
     }
-    .detail-row.show {
+    
+    .mes-toggle-checkbox:checked ~ .detail-row {
         display: table-row;
     }
-    .detail-row td {
-        padding: 12px 8px !important;
-        border-left: 4px solid #0066cc !important;
-        font-size: 0.85em;
+    
+    .mes-toggle-checkbox:checked ~ .mes-row .toggle-icon {
+        transform: rotate(90deg);
     }
-    .detail-header {
-        background-color: #e0e7ff !important;
-        font-weight: 700 !important;
-        color: #0066cc !important;
+    
+    .detail-row td {
+        padding: 0 !important;
+        border: none !important;
+    }
+    
+    .detail-row-content {
+        padding: 20px;
+        background-color: #f9fafc;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .detail-table thead tr {
+        background-color: #dbeafe;
+        font-weight: 700;
+        color: #1e40af;
+    }
+    
+    .detail-table th {
+        padding: 10px 8px;
+        text-align: center;
+        font-size: 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .detail-table td {
+        padding: 8px;
+        text-align: center;
+        font-size: 0.85em;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .detail-table td:first-child {
+        text-align: left;
+        font-weight: 600;
+        color: #0066cc;
+    }
+    
+    .detail-table tbody tr:hover {
+        background-color: #f0f9ff;
     }
 </style>
+
 <table>
 <thead><tr>
 '''
+
+# Encabezados
 for col in df_resumen.columns:
     html_resumen += f'<th>{col}</th>'
 html_resumen += '</tr></thead><tbody>'
 
-# Construir filas principales con expanders
+# Construir filas con checkbox hack
 for idx, row in df_resumen.iterrows():
     mes_nombre = row['Mes']
-    html_resumen += f'''<tr class="expandable-row" onclick="toggleDetail(this, '{mes_nombre}')">
-        <td><span class="toggle-icon">▶</span> {mes_nombre}</td>'''
+    mes_id = f"mes_{idx}_{mes_nombre}"
+    
+    # Checkbox oculto y label
+    html_resumen += f'''<label for="{mes_id}" style="display: contents;">
+        <input type="checkbox" id="{mes_id}" class="mes-toggle-checkbox">
+        
+        <tr class="mes-row">
+            <td><span class="toggle-icon">▶</span> {mes_nombre}</td>'''
+    
+    # Datos del mes
     for col in df_resumen.columns[1:]:
         valor = row[col]
         html_resumen += f'<td>{valor}</td>'
+    
     html_resumen += '</tr>'
     
-    # Agregar filas de detalle por agente (ocultas inicialmente)
+    # FILA DE DETALLES (oculta, se muestra al hacer check)
+    html_resumen += f'<tr class="detail-row"><td colspan="{len(df_resumen.columns)}">'
+    html_resumen += '<div class="detail-row-content">'
+    
+    # Obtener datos de asesores
     df_lista = load_lista_metas()
     if df_lista is not None and not df_lista.empty:
         df_mes_lista = df_lista[df_lista['Mes'] == mes_nombre]
         
-        # Primera fila de detalle: header
-        html_resumen += f'''<tr class="detail-row detail-header" data-mes="{mes_nombre}">
-            <td colspan="{len(df_resumen.columns)}" style="text-align: center; padding: 10px !important;">
-                📊 Detalles por Asesor - {mes_nombre}
-            </td>
-        </tr>'''
-        
-        # Agregar tabla dentro con datos de asesores
-        html_resumen += f'''<tr class="detail-row" data-mes="{mes_nombre}">
-            <td colspan="{len(df_resumen.columns)}" style="padding: 0 !important; border: none !important;">
-                <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background-color: #dbeafe; font-weight: 700; color: #1e40af;">
-                        <th style="padding: 8px; text-align: left; font-size: 0.8em;">Asesor</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Leads</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Cober</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">%Cob</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Contr</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">%Conv</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Real</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Cancel</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Pagó</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">NoPag</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">Efect</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">NoResp</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">%NR</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">NoEsp</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">%NE</th>
-                        <th style="padding: 8px; text-align: center; font-size: 0.8em;">%SC</th>
-                    </tr>
-                </thead>
-                <tbody>'''
-        
-        # Agregar datos de cada asesor
-        for _, asesor_row in df_mes_lista.iterrows():
-            asesor = asesor_row['Asesor'].strip()
-            df_mantra = load_mantra_data()
+        if not df_mes_lista.empty:
+            html_resumen += f'<h4 style="color: #0066cc; margin-bottom: 15px; font-size: 0.95em;">📊 Detalles por Asesor - {mes_nombre}</h4>'
+            html_resumen += '<table class="detail-table"><thead><tr>'
+            html_resumen += '<th>Asesor</th><th>Leads</th><th>Cober</th><th>%Cob</th><th>Contr</th><th>%Conv</th><th>Real</th><th>Cancel</th><th>Pagó</th><th>NoPag</th><th>Efect</th><th>NoResp</th><th>%NR</th><th>NoEsp</th><th>%NE</th><th>%SC</th>'
+            html_resumen += '</tr></thead><tbody>'
             
-            if df_mantra is not None and not df_mantra.empty:
-                df_mantra['Agente'] = df_mantra['Agente'].astype(str).str.strip()
-                nombres_alt = get_nombres_alternativos(asesor)
-                df_asesor_mantra = df_mantra[
-                    (df_mantra['Mes'] == mes_nombre) & 
-                    (df_mantra['Agente'].isin(nombres_alt))
-                ]
+            for _, asesor_row in df_mes_lista.iterrows():
+                asesor = asesor_row['Asesor'].strip()
+                df_mantra = load_mantra_data()
                 
-                leads_asesor = len(df_asesor_mantra)
-                df_asesor_mantra['NIVEL 2'] = df_asesor_mantra['NIVEL 2'].astype(str).str.strip()
-                cober_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 2'] == 'Con Cobertura'])
-                cob_pct_asesor = int((cober_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
-                
-                contr_asesor = len(df_asesor_mantra[
-                    (df_asesor_mantra['NIVEL 2'] == 'Con Cobertura') & 
-                    (df_asesor_mantra['NIVEL 3'].astype(str).str.strip() == 'Contrato OK')
-                ])
-                conv_pct_asesor = get_conversion_asesor_mes(asesor, mes_nombre)
-                
-                # Datos de DRIVE
-                df_drive = load_drive_data()
-                if df_drive is not None and not df_drive.empty:
-                    if 'MES' in df_drive.columns:
-                        df_mes_drive = df_drive[df_drive['MES'] == mes_nombre]
-                    else:
-                        mes_numeros = {'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6, 
-                                      'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12}
-                        mes_num = mes_numeros.get(mes_nombre)
-                        df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num] if mes_num else pd.DataFrame()
+                if df_mantra is not None and not df_mantra.empty:
+                    df_mantra['Agente'] = df_mantra['Agente'].astype(str).str.strip()
+                    nombres_alt = get_nombres_alternativos(asesor)
+                    df_asesor_mantra = df_mantra[
+                        (df_mantra['Mes'] == mes_nombre) & 
+                        (df_mantra['Agente'].isin(nombres_alt))
+                    ]
                     
-                    if not df_mes_drive.empty:
-                        df_mes_drive['ASESOR'] = df_mes_drive['ASESOR'].astype(str).str.strip()
-                        df_asesor_drive = df_mes_drive[df_mes_drive['ASESOR'].isin(nombres_alt)]
+                    leads_asesor = len(df_asesor_mantra)
+                    df_asesor_mantra['NIVEL 2'] = df_asesor_mantra['NIVEL 2'].astype(str).str.strip()
+                    cober_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 2'] == 'Con Cobertura'])
+                    cob_pct_asesor = int((cober_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
+                    
+                    contr_asesor = len(df_asesor_mantra[
+                        (df_asesor_mantra['NIVEL 2'] == 'Con Cobertura') & 
+                        (df_asesor_mantra['NIVEL 3'].astype(str).str.strip() == 'Contrato OK')
+                    ])
+                    conv_pct_asesor = get_conversion_asesor_mes(asesor, mes_nombre)
+                    
+                    # Datos de DRIVE
+                    df_drive = load_drive_data()
+                    if df_drive is not None and not df_drive.empty:
+                        if 'MES' in df_drive.columns:
+                            df_mes_drive = df_drive[df_drive['MES'] == mes_nombre]
+                        else:
+                            mes_numeros = {'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6, 
+                                          'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12}
+                            mes_num = mes_numeros.get(mes_nombre)
+                            df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num] if mes_num else pd.DataFrame()
                         
-                        cancelados = len(df_asesor_drive[df_asesor_drive['ESTADO'] == 'CANCELADO'])
-                        pagados = len(df_asesor_drive[df_asesor_drive['ESTADO'] == 'INSTALADO'])
-                        nopago = len(df_asesor_drive[df_asesor_drive['ESTADO'] == 'NO_PAGO'])
-                        
-                        total_trans = cancelados + pagados + nopago
-                        efect_asesor = int((pagados / total_trans * 100)) if total_trans > 0 else 0
+                        if not df_mes_drive.empty:
+                            df_mes_drive['ASESOR'] = df_mes_drive['ASESOR'].astype(str).str.strip()
+                            df_asesor_drive = df_mes_drive[df_mes_drive['ASESOR'].isin(nombres_alt)]
+                            
+                            cancelados = len(df_asesor_drive[df_asesor_drive['ESTADO'] == 'CANCELADO'])
+                            pagados = len(df_asesor_drive[df_asesor_drive['ESTADO'] == 'INSTALADO'])
+                            nopago = len(df_asesor_drive[df_asesor_drive['ESTADO'] == 'NO_PAGO'])
+                            
+                            total_trans = cancelados + pagados + nopago
+                            efect_asesor = int((pagados / total_trans * 100)) if total_trans > 0 else 0
+                        else:
+                            cancelados = 0
+                            pagados = 0
+                            nopago = 0
+                            efect_asesor = 0
                     else:
                         cancelados = 0
                         pagados = 0
                         nopago = 0
                         efect_asesor = 0
-                else:
-                    cancelados = 0
-                    pagados = 0
-                    nopago = 0
-                    efect_asesor = 0
-                
-                # Datos de MANTRA para NoResp, NoEsp, SinCob
-                noresp_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 3'].astype(str).str.strip() == 'No Responde'])
-                noresp_pct = int((noresp_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
-                
-                noesp_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 3'].astype(str).str.strip() == 'No Especifica'])
-                noesp_pct = int((noesp_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
-                
-                sincob_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 2'].astype(str).str.strip() == 'Sin Cobertura'])
-                sincob_pct = int((sincob_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
-                
-                html_resumen += f'''<tr style="background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 8px; font-weight: 600; color: #0066cc;">{asesor}</td>
-                    <td style="padding: 8px; text-align: center;">{leads_asesor}</td>
-                    <td style="padding: 8px; text-align: center;">{cober_asesor}</td>
-                    <td style="padding: 8px; text-align: center;">{cob_pct_asesor}%</td>
-                    <td style="padding: 8px; text-align: center;">{contr_asesor}</td>
-                    <td style="padding: 8px; text-align: center; color: #0066cc; font-weight: 700;">{conv_pct_asesor}%</td>
-                    <td style="padding: 8px; text-align: center;">51%</td>
-                    <td style="padding: 8px; text-align: center;">{cancelados}</td>
-                    <td style="padding: 8px; text-align: center;">{pagados}</td>
-                    <td style="padding: 8px; text-align: center;">{nopago}</td>
-                    <td style="padding: 8px; text-align: center; color: #0066cc; font-weight: 700;">{efect_asesor}%</td>
-                    <td style="padding: 8px; text-align: center;">{noresp_asesor}</td>
-                    <td style="padding: 8px; text-align: center;">{noresp_pct}%</td>
-                    <td style="padding: 8px; text-align: center;">{noesp_asesor}</td>
-                    <td style="padding: 8px; text-align: center;">{noesp_pct}%</td>
-                    <td style="padding: 8px; text-align: center;">{sincob_pct}%</td>
-                </tr>'''
-        
-        html_resumen += '</tbody></table></td></tr>'
-
-html_resumen += '''</tbody>
-</table>
-</div>
-
-<script>
-function toggleDetail(row, mesNombre) {
-    const detailRows = document.querySelectorAll(`tr[data-mes="${mesNombre}"]`);
-    let isHidden = detailRows[0].classList.contains('show') === false;
+                    
+                    # Datos de MANTRA para NoResp, NoEsp, SinCob
+                    noresp_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 3'].astype(str).str.strip() == 'No Responde'])
+                    noresp_pct = int((noresp_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
+                    
+                    noesp_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 3'].astype(str).str.strip() == 'No Especifica'])
+                    noesp_pct = int((noesp_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
+                    
+                    sincob_asesor = len(df_asesor_mantra[df_asesor_mantra['NIVEL 2'].astype(str).str.strip() == 'Sin Cobertura'])
+                    sincob_pct = int((sincob_asesor / leads_asesor * 100)) if leads_asesor > 0 else 0
+                    
+                    html_resumen += f'<tr><td>{asesor}</td><td>{leads_asesor}</td><td>{cober_asesor}</td><td>{cob_pct_asesor}%</td><td>{contr_asesor}</td><td style="color: #0066cc; font-weight: 700;">{conv_pct_asesor}%</td><td>51%</td><td>{cancelados}</td><td>{pagados}</td><td>{nopago}</td><td style="color: #0066cc; font-weight: 700;">{efect_asesor}%</td><td>{noresp_asesor}</td><td>{noresp_pct}%</td><td>{noesp_asesor}</td><td>{noesp_pct}%</td><td>{sincob_pct}%</td></tr>'
+            
+            html_resumen += '</tbody></table>'
     
-    detailRows.forEach(detailRow => {
-        if (isHidden) {
-            detailRow.classList.add('show');
-        } else {
-            detailRow.classList.remove('show');
-        }
-    });
-    
-    const icon = row.querySelector('.toggle-icon');
-    if (isHidden) {
-        icon.textContent = '▼';
-    } else {
-        icon.textContent = '▶';
-    }
-}
-</script>
-'''
+    html_resumen += '</div></td></tr></label>'
+
+html_resumen += '</tbody></table></div>'
 
 st.markdown(html_resumen, unsafe_allow_html=True)
 
