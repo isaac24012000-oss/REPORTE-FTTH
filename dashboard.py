@@ -960,7 +960,7 @@ def get_ventas_mes(mes_nombre):
         
         # Para Noviembre, sumar Octubre + Noviembre
         es_noviembre = mes_num == 11
-        total = count_instaladas_con_regla(df_drive, mes_num, es_noviembre)
+        total = count_instaladas_con_regla(df_drive, mes_num, es_noviembre, mes_nombre)
         return total
     except Exception as e:
         return 0
