@@ -409,6 +409,11 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     if df_mantra is None or df_mantra.empty or df_drive is None or df_drive.empty:
         return 0
     
+    # Limpiar espacios en los nombres de asesor
+    df_mantra['Agente'] = df_mantra['Agente'].astype(str).str.strip()
+    df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
+    asesor = asesor.strip()
+    
     # Obtener Con Cobertura del asesor en MANTRA para el mes
     df_mes_mantra = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'] == asesor)].copy()
     df_mes_mantra['NIVEL 2'] = df_mes_mantra['NIVEL 2'].astype(str).str.strip()
