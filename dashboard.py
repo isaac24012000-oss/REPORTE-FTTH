@@ -787,7 +787,7 @@ st.markdown("""
     }
 
     .meta-tabla th {
-        padding: 4px 2px;
+        padding: 8px 6px;
         text-align: left;
         font-size: 0.8em;
         text-transform: uppercase;
@@ -795,7 +795,7 @@ st.markdown("""
     }
 
     .meta-tabla td {
-        padding: 2px 2px;
+        padding: 5px 6px;
         border-bottom: 1px solid #f1f5f9;
         font-size: 0.8em;
     }
@@ -815,11 +815,11 @@ st.markdown("""
     .meta-valor {
         font-weight: 700;
         text-align: center;
-        border-radius: 6px;
-        padding: 2px 4px;
+        border-radius: 8px;
+        padding: 3px 8px;
         display: inline-block;
-        min-width: 32px;
-        font-size: 0.8em;
+        min-width: 40px;
+        font-size: 0.85em;
         background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
         color: white;
     }
@@ -1293,12 +1293,12 @@ with col1:
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table style="table-layout: fixed;"><thead><tr><th style="width: 20px;">Pos</th><th style="width: 100px;">Empleado</th><th style="width: 50px; text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Empleado</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
         empleado = row['Empleado']
         meta = int(row['Meta'])
-        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
+        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
     
     # Agregar fila de totales
     total_meta = int(tabla_meta['Meta'].sum())
