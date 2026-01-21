@@ -787,7 +787,7 @@ st.markdown("""
     }
 
     .meta-tabla th {
-        padding: 8px 6px;
+        padding: 4px 2px;
         text-align: left;
         font-size: 0.8em;
         text-transform: uppercase;
@@ -795,7 +795,7 @@ st.markdown("""
     }
 
     .meta-tabla td {
-        padding: 5px 6px;
+        padding: 2px 2px;
         border-bottom: 1px solid #f1f5f9;
         font-size: 0.8em;
     }
