@@ -274,8 +274,8 @@ def load_drive_data():
 
 def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
     """
-    Cuenta instaladas aplicando la regla de PENDIENTE con PAGO.
-    Regla: Cuenta ESTADO='INSTALADO' o (ESTADO='PENDIENTE' y PAGO='SÍ')
+    Cuenta instaladas aplicando regla para todos los meses.
+    Regla: INSTALADO + (PENDIENTE con PAGO='SI')
     
     Args:
         df: DataFrame filtrado por mes
@@ -299,10 +299,10 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False):
     else:
         df_mes = df_temp[df_temp['FECHA'].dt.month == fecha_mes_num]
     
-    # Aplicar regla: INSTALADO o (PENDIENTE + PAGO='SÍ')
+    # Aplicar regla: INSTALADO o (PENDIENTE + PAGO='SI')
     df_instaladas = df_mes[
         (df_mes['ESTADO'] == 'INSTALADO') |
-        ((df_mes['ESTADO'] == 'PENDIENTE') & (df_mes['PAGO'] == 'SÍ'))
+        ((df_mes['ESTADO'] == 'PENDIENTE') & (df_mes['PAGO'] == 'SI'))
     ]
     
     return len(df_instaladas)
@@ -327,7 +327,7 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None):
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         df_drive = df_drive[df_drive['FECHA'].dt.month == mes_filtro]
     
-    # Contar INSTALADOS por asesor (aplicando regla: INSTALADO o PENDIENTE+PAGO='SÍ')
+    # Contar INSTALADOS por asesor (aplicando regla: INSTALADO o PENDIENTE+PAGO='SI')
     df_drive_temp = df_drive.copy()
     df_drive_temp['ESTADO'] = df_drive_temp['ESTADO'].astype(str).str.strip()
     df_drive_temp['PAGO'] = df_drive_temp['PAGO'].astype(str).str.strip()
@@ -335,7 +335,7 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None):
     # Filtrar según la regla
     df_instalados = df_drive_temp[
         (df_drive_temp['ESTADO'] == 'INSTALADO') |
-        ((df_drive_temp['ESTADO'] == 'PENDIENTE') & (df_drive_temp['PAGO'] == 'SÍ'))
+        ((df_drive_temp['ESTADO'] == 'PENDIENTE') & (df_drive_temp['PAGO'] == 'SI'))
     ]
     instalados_por_asesor = df_instalados.groupby('ASESOR').size()
     
