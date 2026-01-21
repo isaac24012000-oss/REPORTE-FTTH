@@ -12,7 +12,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# Actualizado 21/01/2026 - VENTAS TOTAL DEL MES: 472
+# Actualizado 21/01/2026 - VENTAS INSTALADAS DEL MES
 
 # ============= CARGA DE DATOS DEL EXCEL =============
 
@@ -152,6 +152,33 @@ def get_instaladas_mes(mes_seleccionado="Noviembre"):
     
     return instaladas
 
+@st.cache_data(ttl=0)
+def get_ventas_generales_mes(mes_seleccionado="Noviembre"):
+    """Obtiene el total de TODAS las transacciones del mes
+    = INSTALADAS + PENDIENTES + CANCELADAS
+    Filtra por columna MES"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return 0
+    
+    # Filtrar por mes usando columna MES
+    if 'MES' in df_drive.columns:
+        df_mes = df_drive[df_drive['MES'] == mes_seleccionado]
+    else:
+        # Fallback a FECHA si MES no existe
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
+        df_mes = df_drive[df_drive['FECHA'].dt.month == mes_num]
+    
+    # Total de TODAS las transacciones
+    total_transacciones = len(df_mes)
+    return total_transacciones
 
 @st.cache_data(ttl=0)
 def get_no_pago_mes(mes_seleccionado="Noviembre"):
@@ -291,7 +318,7 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     """
     Cuenta instaladas aplicando regla para todos los meses.
     
-    Regla de VENTAS TOTAL DEL MES:
+    Regla de VENTAS INSTALADAS DEL MES:
     - Solo INSTALADO
     - Sin considerar PENDIENTE
     - Filtra por columna MES (no por FECHA)
@@ -991,7 +1018,7 @@ def get_ventas_mes(mes_nombre):
 
 st.markdown("")  # Espaciador
 
-col1, col2, col3, col4, col5 = st.columns(5, gap="small")
+col1, col2, col3, col4, col5, col6 = st.columns(6, gap="small")
 
 if empleado_seleccionado == "Todos":
     # Preparar datos según vista
@@ -1051,17 +1078,22 @@ if empleado_seleccionado == "Todos":
         df_mes_metas = df_lista[df_lista['Mes'] == mes]
         total_metas = df_mes_metas['Meta'].sum()
         cumplimiento_total = round((ventas_total / total_metas * 100)) if total_metas > 0 else 0
+        
+        # Ventas generales (total de todas las transacciones)
+        ventas_generales = get_ventas_generales_mes(mes)
     else:
         ventas_total = 0
         efectividad_mes = 0
         cumplimiento_total = 0
+        ventas_generales = 0
     
     kpis = [
         (f"{total_leads_excel:,}", "📊 Leads", col1),
         (f"{total_conversion_excel}", "✅ Ventas Del Mes", col2),
-        (str(ventas_total), "💰 Ventas Total Del Mes", col3),
-        (f"{efectividad_mes}%", "⭐ Conversión de Ventas", col4),
-        (f"{cumplimiento_total}%", "🎯 Cumplimiento", col5),
+        (str(ventas_total), "💰 Ventas Instaladas Del Mes", col3),
+        (str(ventas_generales), "📈 Ventas Generales Del Mes", col4),
+        (f"{efectividad_mes}%", "⭐ Conversión de Ventas", col5),
+        (f"{cumplimiento_total}%", "🎯 Cumplimiento", col6),
     ]
 else:
     empleado_data = df[df['Empleado'] == empleado_seleccionado].iloc[0]
