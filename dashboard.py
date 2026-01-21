@@ -76,7 +76,7 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     if con_cobertura == 0:
         return 0
     
-    # Obtener Total de Transacciones de DRIVE para el mes
+    # Obtener Total de Transacciones de DRIVE para el mes (solo por mes, sin restricción de año)
     df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
     
     mes_numeros = {
@@ -89,11 +89,8 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     if mes_num is None:
         return 0
     
-    # Filtrar por mes y año (2026)
-    df_mes_drive = df_drive[
-        (df_drive['FECHA'].dt.month == mes_num) & 
-        (df_drive['FECHA'].dt.year == 2026)
-    ]
+    # Filtrar solo por mes (sin restricción de año)
+    df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num]
     
     total_transacciones = len(df_mes_drive)
     
@@ -433,10 +430,9 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     if mes_num is None:
         return 0
     
-    # Filtrar por mes, año y asesor
+    # Filtrar por mes y asesor (sin restricción de año)
     df_mes_drive = df_drive[
         (df_drive['FECHA'].dt.month == mes_num) & 
-        (df_drive['FECHA'].dt.year == 2026) &
         (df_drive['ASESOR'] == asesor)
     ]
     
