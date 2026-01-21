@@ -554,19 +554,23 @@ st.markdown("""
     /* KPI CARDS */
     .kpi-container {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 15px;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
         margin-bottom: 30px;
     }
 
     .kpi-card {
         background: white;
         border-radius: 12px;
-        padding: 22px;
+        padding: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         border: 1px solid #e2e8f0;
         transition: all 0.3s ease;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 160px;
     }
 
     .kpi-card:hover {
@@ -576,24 +580,27 @@ st.markdown("""
     }
 
     .kpi-icon {
-        font-size: 1.8em;
-        margin-bottom: 10px;
+        font-size: 1.6em;
+        margin-bottom: 8px;
     }
 
     .kpi-value {
-        font-size: 2.4em;
+        font-size: 2.2em;
         font-weight: 800;
         color: #0066cc;
-        margin: 10px 0;
+        margin: 8px 0;
         font-family: 'Courier New', monospace;
+        line-height: 1.2;
     }
 
     .kpi-label {
-        font-size: 0.85em;
+        font-size: 0.75em;
         color: #64748b;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
+        line-height: 1.3;
+        word-wrap: break-word;
     }
 
     /* SECCIÓN TÍTULOS */
@@ -833,6 +840,12 @@ st.markdown("""
 
     ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
+    }
+
+    @media (max-width: 1400px) {
+        .kpi-container {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
     @media (max-width: 768px) {
