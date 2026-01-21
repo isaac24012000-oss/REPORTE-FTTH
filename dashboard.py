@@ -1391,7 +1391,7 @@ with col3:
     ))
     fig_eff.update_layout(
         height=580,
-        margin=dict(l=100, r=50, t=20, b=20),
+        margin=dict(l=50, r=50, t=20, b=20),
         showlegend=False,
         xaxis_title="",
         xaxis=dict(
