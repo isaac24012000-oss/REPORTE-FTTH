@@ -1013,7 +1013,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Filtros mejorados con layout dinámico
-st.markdown("### 🎛️ Filtros y Opciones")
+st.markdown("### ⚙️ Filtros y Opciones")
 col_filtros = st.columns(3, gap="medium")
 
 with col_filtros[0]:
@@ -1251,7 +1251,7 @@ if asesor_seleccionado == "Todos":
         ventas_generales = 0
     
     kpis = [
-        (f"{total_leads_excel:,}", "📊 Leads", col1),
+        (f"{total_leads_excel:,}", "📋 Leads", col1),
         (f"{total_conversion_excel}", "✅ Ventas Del Mes", col2),
         (str(ventas_total), "💰 Ventas Instaladas Del Mes", col3),
         (str(ventas_generales), "📈 Ventas Generales Del Mes", col4),
@@ -1265,7 +1265,7 @@ else:
     instaladas_asesor = int(asesor_data['Instaladas'])
     
     kpis = [
-        (str(int(asesor_data['Meta'])), "📊 Meta", col1),
+        (str(int(asesor_data['Meta'])), "🏆 Meta", col1),
         (f"{cumpl_val}%", "✅ Cumplimiento", col2),
         (f"{efect_val}%", "⭐ Conversión de Ventas", col3),
         (str(instaladas_asesor), "💰 Total Instaladas", col4),
@@ -1284,7 +1284,7 @@ for valor, label, col in kpis:
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
 # Sección principal con 3 columnas mejorada - RESPONSIVO
-st.markdown("### 📊 Análisis de Desempeño por Agente")
+st.markdown("### 💹 Análisis de Desempeño por Agente")
 col1, col2, col3 = st.columns([0.8, 1.6, 1.6], gap="medium")
 
 # Columna 1: Meta Mensual
@@ -1516,7 +1516,7 @@ if not df_fulltime.empty:
 
 # Mostrar tabla Part Time
 if not df_parttime.empty:
-    st.markdown("#### ⏢ Asesores Part Time (4 horas - Meta < 55)")
+    st.markdown("#### 👨‍💼 Asesores Part Time (4 horas - Meta < 55)")
     html_parttime = generar_tabla_detalle(df_parttime, "Part Time")
     st.markdown(html_parttime, unsafe_allow_html=True)
 
@@ -1532,7 +1532,7 @@ if not df_todos.empty:
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
 # Tabla de resumen mensual con expanders
-st.markdown("### 📊 Resumen Mensual Completo")
+st.markdown("### ⭐ Resumen Mensual Completo")
 
 st.markdown('<div style="margin: 20px 0;"></div>', unsafe_allow_html=True)
 
