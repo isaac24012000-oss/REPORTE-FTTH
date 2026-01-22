@@ -1033,7 +1033,7 @@ st.markdown(f"""
         <div class="header-title">🌐 WORLDTEL</div>
         <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
     </div>
-    <div style="position: absolute; right: 250px; top: 50%; transform: translateY(-50%); color: white; font-size: 2.8em; font-weight: 800; letter-spacing: -0.5px;">BITEL - FTTH</div>
+    <div style="position: absolute; right: 250px; top: 50%; transform: translateY(-50%); color: white; font-size: 3.8em; font-weight: 800; letter-spacing: -0.5px;">BITEL - FTTH</div>
 </div>
 """, unsafe_allow_html=True)
 
