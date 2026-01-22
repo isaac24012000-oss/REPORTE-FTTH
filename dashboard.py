@@ -1261,12 +1261,13 @@ else:
     asesor_data = df[df['Asesor'] == asesor_seleccionado].iloc[0]
     cumpl_val = int(asesor_data['Cumplimiento'])
     efect_val = int(asesor_data['Efectividad'])
+    instaladas_asesor = int(asesor_data['Instaladas'])
     
     kpis = [
         (str(int(asesor_data['Meta'])), "📊 Meta", col1),
         (f"{cumpl_val}%", "✅ Cumplimiento", col2),
         (f"{efect_val}%", "⭐ Conversión de Ventas", col3),
-        ("70%", "🎯 Cumplimiento", col4),
+        (str(instaladas_asesor), "💰 Total Instaladas", col4),
         ("🟢 Excelente" if cumpl_val >= 70 else "🟡 Bueno" if cumpl_val >= 40 else "🔴 Bajo", "📈 Estado", col5),
     ]
 
