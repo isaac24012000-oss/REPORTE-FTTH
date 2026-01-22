@@ -1506,6 +1506,16 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
     html_tabla += '</tbody></table></div>'
     return html_tabla
 
+# Mostrar tabla combinada de todos los asesores
+st.markdown("#### 👥 Detalle Completo de Todos los Asesores")
+df_todos = pd.concat([df_fulltime, df_parttime], ignore_index=True).sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
+if not df_todos.empty:
+    html_todos = generar_tabla_detalle(df_todos, "Todos")
+    st.markdown(html_todos, unsafe_allow_html=True)
+    st.markdown('<div style="margin: 15px 0;"></div>', unsafe_allow_html=True)
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
 # Mostrar tabla Full Time
 if not df_fulltime.empty:
     st.markdown("#### 💼 Asesores Full Time (8 horas - Meta ≥ 55)")
