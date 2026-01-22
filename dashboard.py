@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 from datetime import datetime
 import numpy as np
 import os
-import base64
 
 st.set_page_config(
     page_title="Dashboard WORLD TEL - Cumplimiento Mensual",
@@ -14,16 +13,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 # Actualizado 21/01/2026 - VENTAS INSTALADAS DEL MES
-
-# ============= FUNCIONES AUXILIARES =============
-
-def get_base64_image(image_path):
-    """Convierte una imagen a base64 para usar en HTML"""
-    try:
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except Exception as e:
-        return ""
 
 # ============= CARGA DE DATOS DEL EXCEL =============
 
@@ -714,18 +703,7 @@ st.markdown("""
         margin-top: 5px;
     }
 
-    .header-logo {
-        height: 80px;
-        width: auto;
-        margin-right: 15px;
-        vertical-align: middle;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-    }
-
-    .header-content {
-        display: flex;
-        align-items: center;
-    }
+    /* KPI CARDS */
     .kpi-container {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -1049,15 +1027,11 @@ mes_año_map = {
 }
 
 # Header mejorado - Dinámico
-logo_path = os.path.join(os.path.dirname(__file__), 'Worldtel icono.jpg')
 st.markdown(f"""
 <div class="header-container">
     <div class="header-content">
-        <img src="data:image/jpeg;base64,{get_base64_image(logo_path)}" alt="World Tel" class="header-logo">
-        <div>
-            <div class="header-title">WORLD TEL</div>
-            <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
-        </div>
+        <div class="header-title">🌐 WORLD TEL</div>
+        <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
