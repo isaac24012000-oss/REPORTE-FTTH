@@ -619,7 +619,7 @@ def load_data(mes_seleccionado=None):
             canceladas.append(0)
     
     data = {
-        'Empleado': empleados,
+        'Asesor': empleados,
         'Meta': metas,
         'Instaladas': instaladas,
         'Canceladas': canceladas,
@@ -1040,8 +1040,8 @@ st.markdown(f"""
 df = load_data(mes)
 
 with col_filtros[1]:
-    opciones_empleados = ["Todos"] + sorted(df['Empleado'].unique())
-    empleado_seleccionado = st.selectbox("👤 Filtrar por Empleado", opciones_empleados)
+    opciones_asesores = ["Todos"] + sorted(df['Asesor'].unique())
+    asesor_seleccionado = st.selectbox("👤 Filtrar por Asesor", opciones_asesores)
 
 vista = "Completa"
 
@@ -1185,9 +1185,9 @@ st.markdown("")  # Espaciador
 
 col1, col2, col3, col4, col5, col6 = st.columns(6, gap="small")
 
-if empleado_seleccionado == "Todos":
+if asesor_seleccionado == "Todos":
     # Preparar datos según vista
-    df_vista = df[['Empleado', 'Cumplimiento']].copy()
+    df_vista = df[['Asesor', 'Cumplimiento']].copy()
     
     if vista == "Top 5":
         df_vista = df_vista.nlargest(5, 'Cumplimiento')
@@ -1195,7 +1195,7 @@ if empleado_seleccionado == "Todos":
         df_vista = df_vista.nsmallest(5, 'Cumplimiento')
     
     # Obtener asesores en la vista
-    asesores_vista = df_vista['Empleado'].tolist()
+    asesores_vista = df_vista['Asesor'].tolist()
     
     # Obtener ventas totales, efectividad y cumplimiento total del mes actual desde DRIVE
     # SIN filtrar por asesores - mostrar TOTALES de TODOS
@@ -1258,12 +1258,12 @@ if empleado_seleccionado == "Todos":
         (f"{cumplimiento_total}%", "🎯 Cumplimiento", col6),
     ]
 else:
-    empleado_data = df[df['Empleado'] == empleado_seleccionado].iloc[0]
-    cumpl_val = int(empleado_data['Cumplimiento'])
-    efect_val = int(empleado_data['Efectividad'])
+    asesor_data = df[df['Asesor'] == asesor_seleccionado].iloc[0]
+    cumpl_val = int(asesor_data['Cumplimiento'])
+    efect_val = int(asesor_data['Efectividad'])
     
     kpis = [
-        (str(int(empleado_data['Meta'])), "📊 Meta", col1),
+        (str(int(asesor_data['Meta'])), "📊 Meta", col1),
         (f"{cumpl_val}%", "✅ Cumplimiento", col2),
         (f"{efect_val}%", "⭐ Conversión de Ventas", col3),
         ("70%", "🎯 Cumplimiento", col4),
@@ -1415,8 +1415,8 @@ with col3:
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
-# Tabla de detalle de empleados
-st.markdown("### 👥 Detalle Completo de Empleados")
+# Tabla de detalle de asesores
+st.markdown("### 👥 Detalle Completo de Asesores")
 
 # Filtro para ordenamiento
 criterio_orden = st.selectbox(
@@ -1425,15 +1425,15 @@ criterio_orden = st.selectbox(
     key="criterio_orden"
 )
 
-df_detail = df[['Empleado', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'Efectividad']].copy()
+df_detail = df[['Asesor', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'Efectividad']].copy()
 df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
 df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
 
 # Agregar columna de Pendientes solo para el mes actual (Enero)
 if mes == "Enero":
     pendientes_list = []
-    for empleado in df_detail['Empleado']:
-        pendientes = get_pendientes_asesor_mes(empleado, mes)
+    for asesor in df_detail['Asesor']:
+        pendientes = get_pendientes_asesor_mes(asesor, mes)
         pendientes_list.append(pendientes)
     df_detail['Pendientes'] = pendientes_list
 else:
@@ -1507,14 +1507,14 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
 
 # Mostrar tabla Full Time
 if not df_fulltime.empty:
-    st.markdown("#### 💼 Empleados Full Time (8 horas - Meta ≥ 55)")
+    st.markdown("#### 💼 Asesores Full Time (8 horas - Meta ≥ 55)")
     html_fulltime = generar_tabla_detalle(df_fulltime, "Full Time")
     st.markdown(html_fulltime, unsafe_allow_html=True)
     st.markdown('<div style="margin: 15px 0;"></div>', unsafe_allow_html=True)
 
 # Mostrar tabla Part Time
 if not df_parttime.empty:
-    st.markdown("#### ⏢ Empleados Part Time (4 horas - Meta < 55)")
+    st.markdown("#### ⏢ Asesores Part Time (4 horas - Meta < 55)")
     html_parttime = generar_tabla_detalle(df_parttime, "Part Time")
     st.markdown(html_parttime, unsafe_allow_html=True)
 
