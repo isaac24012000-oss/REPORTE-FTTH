@@ -1288,17 +1288,17 @@ col1, col2, col3 = st.columns([0.8, 1.6, 1.6], gap="medium")
 # Columna 1: Meta Mensual
 with col1:
     st.markdown('<div class="chart-title">📈 Meta Mensual</div>', unsafe_allow_html=True)
-    tabla_meta = df[['Empleado', 'Meta']].copy()
+    tabla_meta = df[['Asesor', 'Meta']].copy()
     tabla_meta = tabla_meta.sort_values('Meta', ascending=False).reset_index(drop=True)
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Empleado</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Asesor</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
-        empleado = row['Empleado']
+        asesor = row['Asesor']
         meta = int(row['Meta'])
-        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{empleado}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
+        html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{asesor}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
     
     # Agregar fila de totales
     total_meta = int(tabla_meta['Meta'].sum())
@@ -1328,7 +1328,7 @@ with col2:
     
     fig_cumpl = go.Figure()
     fig_cumpl.add_trace(go.Bar(
-        y=df_sorted['Empleado'],
+        y=df_sorted['Asesor'],
         x=df_sorted['Cumplimiento'],
         orientation='h',
         marker=dict(
@@ -1375,7 +1375,7 @@ with col3:
     
     fig_eff = go.Figure()
     fig_eff.add_trace(go.Bar(
-        y=df_sorted_eff['Empleado'],
+        y=df_sorted_eff['Asesor'],
         x=df_sorted_eff['Efectividad'],
         orientation='h',
         marker=dict(
@@ -1454,12 +1454,12 @@ else:
 # Función para generar tabla HTML
 def generar_tabla_detalle(df_tabla, tipo_empleado):
     if mes == "Enero":
-        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Empleado</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Asesor</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
     else:
-        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Empleado</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Asesor</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
 
     for idx, (_, row) in enumerate(df_tabla.iterrows(), 1):
-        empleado = row['Empleado']
+        asesor = row['Asesor']
         meta = int(row['Meta'])
         instaladas = int(row['Instaladas'])
         canceladas = int(row['Canceladas'])
@@ -1481,7 +1481,7 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
         if mes == "Enero":
             html_tabla += f'''<tr style="{fila_bg}">
                 <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
-                <td style="font-weight: 600;">{empleado}</td>
+                <td style="font-weight: 600;">{asesor}</td>
                 <td style="text-align: center; font-weight: 600;">{meta}</td>
                 <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
@@ -1493,7 +1493,7 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
         else:
             html_tabla += f'''<tr style="{fila_bg}">
                 <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
-                <td style="font-weight: 600;">{empleado}</td>
+                <td style="font-weight: 600;">{asesor}</td>
                 <td style="text-align: center; font-weight: 600;">{meta}</td>
                 <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
