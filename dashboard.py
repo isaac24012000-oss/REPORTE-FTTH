@@ -7,8 +7,8 @@ import numpy as np
 import os
 
 st.set_page_config(
-    page_title="Dashboard WORLD TEL - Cumplimiento Mensual",
-    page_icon="📊",
+    page_title="Reporte Bitel FTTH",
+    page_icon="�",
     layout="wide",
     initial_sidebar_state="expanded"
 )
