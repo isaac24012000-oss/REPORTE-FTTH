@@ -1268,7 +1268,7 @@ else:
         (f"{cumpl_val}%", "✅ Cumplimiento", col2),
         (f"{efect_val}%", "⭐ Conversión de Ventas", col3),
         (str(instaladas_asesor), "💰 Total Instaladas", col4),
-        ("🟢 Excelente" if cumpl_val >= 70 else "🟡 Bueno" if cumpl_val >= 40 else "🔴 Bajo", "📈 Estado", col5),
+        ("🟢 Excelente" if cumpl_val >= 70 else "🟡 Bueno" if cumpl_val >= 50 else "🔴 Bajo", "📈 Estado", col5),
     ]
 
 for valor, label, col in kpis:
@@ -1472,7 +1472,7 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
         if cumpl >= 70:
             estado = '<span class="status-excellent">✓ Excelente</span>'
             fila_bg = 'background-color: #f0fdf4;'
-        elif cumpl >= 40:
+        elif cumpl >= 50:
             estado = '<span class="status-good">~ Bueno</span>'
             fila_bg = 'background-color: #fffbeb;'
         else:
