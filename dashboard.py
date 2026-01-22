@@ -703,7 +703,18 @@ st.markdown("""
         margin-top: 5px;
     }
 
-    /* KPI CARDS */
+    .header-logo {
+        height: 80px;
+        width: auto;
+        margin-right: 15px;
+        vertical-align: middle;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+    }
     .kpi-container {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -1030,8 +1041,11 @@ mes_año_map = {
 st.markdown(f"""
 <div class="header-container">
     <div class="header-content">
-        <div class="header-title">🌐 WORLD TEL</div>
-        <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
+        <img src="file:///C:/Users/USUARIO/Desktop/REPORTE%20FTTH/REPORTE-FTTH/Worldtel%20icono.jpg" alt="World Tel" class="header-logo">
+        <div>
+            <div class="header-title">WORLD TEL</div>
+            <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
