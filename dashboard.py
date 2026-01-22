@@ -1568,7 +1568,6 @@ html_resumen = '''
 <th>%Cob</th>
 <th>Contr</th>
 <th>%Conv</th>
-<th>Real</th>
 <th>Cancel</th>
 <th>Pagó</th>
 <th>NoPag</th>
@@ -1606,7 +1605,6 @@ for dato in datos_meses:
     <td>{cob_pct}%</td>
     <td>{contr}</td>
     <td style="color: #0066cc; font-weight: 700;">{conv_pct}%</td>
-    <td>51%</td>
     <td>{cancel}</td>
     <td>{pago}</td>
     <td>{nopago}</td>
