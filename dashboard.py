@@ -1284,7 +1284,7 @@ for valor, label, col in kpis:
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
 # Sección principal con 3 columnas mejorada - RESPONSIVO
-st.markdown("### 💹 Análisis de Desempeño por Agente")
+st.markdown("### 📑 Análisis de Desempeño por Agente")
 col1, col2, col3 = st.columns([0.8, 1.6, 1.6], gap="medium")
 
 # Columna 1: Meta Mensual
@@ -1312,7 +1312,7 @@ with col1:
 
 # Columna 2: Cumplimiento por Agente
 with col2:
-    st.markdown('<div class="chart-title">📊 Cumplimiento por Agente (%)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">🎯 Cumplimiento por Agente (%)</div>', unsafe_allow_html=True)
     df_sorted = df.sort_values('Cumplimiento', ascending=True)
     
     # Crear colores degradados basados en cumplimiento
