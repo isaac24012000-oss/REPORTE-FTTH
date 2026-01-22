@@ -1030,10 +1030,10 @@ mes_año_map = {
 st.markdown(f"""
 <div class="header-container">
     <div class="header-content">
-        <div class="header-title">🌐 WORLD TEL</div>
+        <div class="header-title">🌐 WORLDTEL</div>
         <div class="header-subtitle">Dashboard de Cumplimiento Mensual - {mes_año_map[mes]}</div>
     </div>
-    <div style="position: absolute; right: 40px; top: 50%; transform: translateY(-50%); color: white; font-size: 2.8em; font-weight: 800; letter-spacing: -0.5px;">BITEL - FTTH</div>
+    <div style="position: absolute; right: 150px; top: 50%; transform: translateY(-50%); color: white; font-size: 2.8em; font-weight: 800; letter-spacing: -0.5px;">BITEL - FTTH</div>
 </div>
 """, unsafe_allow_html=True)
 
