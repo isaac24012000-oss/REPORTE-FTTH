@@ -1184,7 +1184,7 @@ def get_ventas_mes(mes_nombre):
 
 st.markdown("")  # Espaciador
 
-col1, col2, col3, col4, col5, col6 = st.columns(6, gap="small")
+col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
 
 if asesor_seleccionado == "Todos":
     # Preparar datos según vista
@@ -1252,11 +1252,12 @@ if asesor_seleccionado == "Todos":
     
     kpis = [
         (f"{total_leads_excel:,}", "📋 Leads", col1),
-        (f"{total_conversion_excel}", "✅ Ventas Del Mes", col2),
-        (str(ventas_total), "💰 Ventas Instaladas Del Mes", col3),
-        (str(ventas_generales), "📈 Ventas Generales Del Mes", col4),
-        (f"{efectividad_mes}%", "⭐ Conversión de Ventas", col5),
-        (f"{cumplimiento_total}%", "🎯 Cumplimiento", col6),
+        (str(get_con_cobertura_count(mes)), "🌐 Con Cobertura", col2),
+        (f"{total_conversion_excel}", "✅ Ventas Del Mes", col3),
+        (str(ventas_total), "💰 Ventas Instaladas Del Mes", col4),
+        (str(ventas_generales), "📈 Ventas Generales Del Mes", col5),
+        (f"{efectividad_mes}%", "⭐ Conversión de Ventas", col6),
+        (f"{cumplimiento_total}%", "🎯 Cumplimiento", col7),
     ]
 else:
     asesor_data = df[df['Asesor'] == asesor_seleccionado].iloc[0]
