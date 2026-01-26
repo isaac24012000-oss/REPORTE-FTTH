@@ -195,7 +195,6 @@ def get_instaladas_mes(mes_seleccionado="Noviembre"):
     
     return instaladas
 
-@st.cache_data(ttl=60)  # Reducido a 60 segundos para actualizaciones más frecuentes
 def get_ventas_generales_mes(mes_seleccionado="Noviembre"):
     """Obtiene el total de TODAS las transacciones del mes
     = INSTALADAS + PENDIENTES + CANCELADAS
