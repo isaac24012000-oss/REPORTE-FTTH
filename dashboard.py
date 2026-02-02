@@ -1445,8 +1445,6 @@ if mes == mes_actual:
         pendientes = get_pendientes_asesor_mes(asesor, mes)
         pendientes_list.append(pendientes)
     df_detail['Pendientes'] = pendientes_list
-else:
-    df_detail['Pendientes'] = 0
 
 # Separar en Full Time (meta >= 55) y Part Time (meta < 55)
 df_fulltime = df_detail[df_detail['Meta'] >= 55].copy()
@@ -1462,7 +1460,15 @@ else:
 
 # Función para generar tabla HTML
 def generar_tabla_detalle(df_tabla, tipo_empleado):
-    if mes == "Enero":
+    # Obtener mes actual
+    meses_nombres = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
+    mes_actual = meses_nombres[datetime.now().month]
+    
+    # Verificar si mostrar columna de Pendientes (solo si es el mes actual)
+    mostrar_pendientes = mes == mes_actual
+    
+    if mostrar_pendientes:
         html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Asesor</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
     else:
         html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Asesor</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
@@ -1472,7 +1478,7 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
         meta = int(row['Meta'])
         instaladas = int(row['Instaladas'])
         canceladas = int(row['Canceladas'])
-        pendientes = int(row['Pendientes']) if mes == "Enero" else 0
+        pendientes = int(row.get('Pendientes', 0)) if mostrar_pendientes else 0
         cumpl = int(row['Cumplimiento'])
         efect = int(row['Efectividad'])
         
@@ -1487,7 +1493,7 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
             estado = '<span class="status-poor">✗ Bajo</span>'
             fila_bg = 'background-color: #fef2f2;'
         
-        if mes == "Enero":
+        if mostrar_pendientes:
             html_tabla += f'''<tr style="{fila_bg}">
                 <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
                 <td style="font-weight: 600;">{asesor}</td>
