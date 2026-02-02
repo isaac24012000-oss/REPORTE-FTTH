@@ -1536,7 +1536,7 @@ st.markdown("### ⭐ Resumen Mensual Completo")
 st.markdown('<div style="margin: 20px 0;"></div>', unsafe_allow_html=True)
 
 # Obtener datos para cada mes
-meses_disponibles = ['Noviembre', 'Diciembre', 'Enero']
+meses_disponibles = ['Noviembre', 'Diciembre', 'Enero', 'Febrero']
 datos_meses = []
 totales = {'Leads': 0, 'Contr': 0, 'Cober': 0}
 
