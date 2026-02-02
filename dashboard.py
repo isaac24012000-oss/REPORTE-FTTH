@@ -1016,13 +1016,14 @@ st.markdown("### ⚙️ Filtros y Opciones")
 col_filtros = st.columns(3, gap="medium")
 
 with col_filtros[0]:
-    mes = st.selectbox("📅 Selecciona Mes", ["Noviembre", "Diciembre", "Enero"], index=2)
+    mes = st.selectbox("📅 Selecciona Mes", ["Noviembre", "Diciembre", "Enero", "Febrero"], index=3)
 
 # Mapeo de meses a años
 mes_año_map = {
     "Noviembre": "Noviembre 2025",
     "Diciembre": "Diciembre 2025",
-    "Enero": "Enero 2026"
+    "Enero": "Enero 2026",
+    "Febrero": "Febrero 2026"
 }
 
 # Header mejorado - Dinámico
