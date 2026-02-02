@@ -28,7 +28,7 @@ def load_mantra_data():
     except Exception as e:
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600)    
 def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
     """Obtiene total de leads y conversión para un mes específico"""
     df_mantra = load_mantra_data()
@@ -1432,8 +1432,14 @@ df_detail = df[['Asesor', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'E
 df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
 df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
 
-# Agregar columna de Pendientes solo para el mes actual (Enero)
-if mes == "Enero":
+# Agregar columna de Pendientes solo para el mes actual
+# Obtener mes actual
+meses_nombres = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
+mes_actual = meses_nombres[datetime.now().month]
+
+# Solo agregar columna de Pendientes si el mes seleccionado es el mes actual
+if mes == mes_actual:
     pendientes_list = []
     for asesor in df_detail['Asesor']:
         pendientes = get_pendientes_asesor_mes(asesor, mes)
