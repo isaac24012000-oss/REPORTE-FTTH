@@ -331,7 +331,7 @@ def load_lista_metas():
     except Exception as e:
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=30)  # Reducir para asegurar datos frescos
 def load_drive_data():
     """Carga datos de la hoja DRIVE del archivo REPORTE FTTH.xlsx"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
@@ -1175,6 +1175,11 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# BOTÓN PARA LIMPIAR CACHE (DEL USUARIO)
+if st.button("🔄 LIMPIAR CACHE Y RECARGAR", key="btn_clear_cache"):
+    st.cache_data.clear()
+    st.rerun()
 
 # Filtros mejorados con layout dinámico
 st.markdown("### ⚙️ Filtros y Opciones")
