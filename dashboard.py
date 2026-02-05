@@ -436,11 +436,8 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     # Limpiar columna ESTADO: strip() y case-insensitive
     df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip().str.upper()
     
-    # Intentar usar FECHA DE primero (más específica), luego FECHA
-    if 'FECHA DE' in df_temp.columns:
-        df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA DE'], errors='coerce')
-    else:
-        df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    # Usar columna FECHA (no FECHA DE)
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
     
     # Mapeo de meses
     mes_numeros = {
@@ -471,7 +468,10 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     df_mes = df_mes[df_mes['FECHA_AÑO'] == año_filtro]
     
     # Filtrar solo INSTALADO (sin espacios, case-insensitive)
-    df_instaladas = df_mes[df_mes['ESTADO'] == 'INSTALADO'].copy()
+    # Ser flexible: aceptar INSTALADO con o sin espacios
+    df_instaladas = df_mes[
+        (df_mes['ESTADO'].str.contains('INSTALADO', na=False, case=False))
+    ].copy()
     
     if df_instaladas.empty:
         return pd.DataFrame()
