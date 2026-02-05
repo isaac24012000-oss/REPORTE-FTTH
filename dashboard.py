@@ -458,51 +458,64 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     if df_instaladas.empty:
         return pd.DataFrame()
     
-    # Calcular número de semana y extraer fechas
-    df_instaladas['SEMANA'] = df_instaladas['FECHA'].dt.isocalendar().week
+    # Crear semanas naturales del mes (1-7, 8-14, 15-21, 22-28, 29-31)
+    def get_semana_natural(dia):
+        if dia <= 7:
+            return 1
+        elif dia <= 14:
+            return 2
+        elif dia <= 21:
+            return 3
+        elif dia <= 28:
+            return 4
+        else:
+            return 5
     
-    # Agrupar por semana y calcular min/max fechas
-    df_semanas_agg = df_instaladas.groupby('SEMANA').agg({
-        'FECHA': ['min', 'max']
-    }).reset_index()
+    df_instaladas['DIA'] = df_instaladas['FECHA'].dt.day
+    df_instaladas['SEMANA_NUM'] = df_instaladas['DIA'].apply(get_semana_natural)
     
-    df_semanas_agg.columns = ['SEMANA_NUM', 'FECHA_MIN', 'FECHA_MAX']
+    # Crear rango de días para cada semana
+    def get_rango_semana(semana_num, mes_años):
+        """Obtiene el rango de días de una semana"""
+        if semana_num == 1:
+            return 1, 7
+        elif semana_num == 2:
+            return 8, 14
+        elif semana_num == 3:
+            return 15, 21
+        elif semana_num == 4:
+            return 22, 28
+        else:
+            # Para la última semana, obtener último día del mes
+            fecha_sample = pd.to_datetime(mes_años)
+            ultimo_dia = pd.Timestamp(year=fecha_sample.year, month=fecha_sample.month, day=1) + pd.DateOffset(months=1) - pd.DateOffset(days=1)
+            return 29, ultimo_dia.day
     
-    # Contar instaladas por semana
-    df_semanas_count = df_instaladas.groupby('SEMANA').size().reset_index(name='INSTALADAS')
-    df_semanas_count.columns = ['SEMANA_NUM', 'INSTALADAS']
+    # Obtener la fecha de referencia del mes
+    mes_num = df_instaladas['FECHA'].dt.month.iloc[0]
+    año_num = df_instaladas['FECHA'].dt.year.iloc[0]
     
-    # Combinar
-    df_semanas = df_semanas_agg.merge(df_semanas_count, on='SEMANA_NUM')
+    # Agrupar por semana y contar
+    df_semanas_count = df_instaladas.groupby('SEMANA_NUM').size().reset_index(name='INSTALADAS')
     
-    # Crear etiqueta de semana con rango de fechas
-    def format_semana_label(row):
-        semana_num = int(row['SEMANA_NUM'])
-        fecha_min = pd.to_datetime(row['FECHA_MIN'])
-        fecha_max = pd.to_datetime(row['FECHA_MAX'])
+    # Agregar rango de fechas
+    def crear_etiqueta_semana(semana_num):
+        dia_inicio, dia_fin = get_rango_semana(semana_num, f'{año_num}-{mes_num:02d}-01')
         
-        # Nombres de meses
         mes_nombres_cortos = {
             1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr',
             5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago',
             9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
         }
         
-        mes_min = mes_nombres_cortos[fecha_min.month]
-        mes_max = mes_nombres_cortos[fecha_max.month]
-        dia_min = fecha_min.day
-        dia_max = fecha_max.day
-        
-        # Si es del mismo mes
-        if fecha_min.month == fecha_max.month:
-            return f"{dia_min}-{dia_max} {mes_min}"
-        else:
-            return f"{dia_min} {mes_min}-{dia_max} {mes_max}"
+        mes_str = mes_nombres_cortos[mes_num]
+        return f"{dia_inicio}-{dia_fin} {mes_str}"
     
-    df_semanas['SEMANA'] = df_semanas.apply(format_semana_label, axis=1)
+    df_semanas_count['SEMANA'] = df_semanas_count['SEMANA_NUM'].apply(crear_etiqueta_semana)
     
-    # Retornar solo las columnas necesarias
-    result = df_semanas[['SEMANA', 'INSTALADAS']].sort_values('SEMANA')
+    # Retornar solo las columnas necesarias, ordenadas
+    result = df_semanas_count[['SEMANA', 'INSTALADAS']].sort_values('SEMANA')
+    result = result.reset_index(drop=True)
     
     return result
 
