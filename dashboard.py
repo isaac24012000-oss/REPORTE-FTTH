@@ -498,6 +498,9 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     # Agrupar por semana y contar
     df_semanas_count = df_instaladas.groupby('SEMANA_NUM').size().reset_index(name='INSTALADAS')
     
+    # Asegurar que esté ordenado numéricamente por semana
+    df_semanas_count = df_semanas_count.sort_values('SEMANA_NUM').reset_index(drop=True)
+    
     # Agregar rango de fechas
     def crear_etiqueta_semana(semana_num):
         dia_inicio, dia_fin = get_rango_semana(semana_num, f'{año_num}-{mes_num:02d}-01')
@@ -513,9 +516,8 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     
     df_semanas_count['SEMANA'] = df_semanas_count['SEMANA_NUM'].apply(crear_etiqueta_semana)
     
-    # Retornar solo las columnas necesarias, ordenadas
-    result = df_semanas_count[['SEMANA', 'INSTALADAS']].sort_values('SEMANA')
-    result = result.reset_index(drop=True)
+    # Retornar solo las columnas necesarias (ya está ordenado por SEMANA_NUM)
+    result = df_semanas_count[['SEMANA', 'INSTALADAS']].copy()
     
     return result
 
