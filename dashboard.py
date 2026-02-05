@@ -425,7 +425,7 @@ def get_meses_disponibles():
 @st.cache_data(ttl=3600)
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     """Obtiene instaladas por semana para un mes específico.
-    Retorna un DataFrame con semana y cantidad de instaladas"""
+    Retorna un DataFrame con semana (con rango de fechas) y cantidad de instaladas"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -455,14 +455,61 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     # Filtrar solo instaladas
     df_instaladas = df_mes[df_mes['ESTADO'] == 'INSTALADO'].copy()
     
-    # Calcular número de semana (isocalendar)
+    if df_instaladas.empty:
+        return pd.DataFrame()
+    
+    # Calcular número de semana y extraer fechas
     df_instaladas['SEMANA'] = df_instaladas['FECHA'].dt.isocalendar().week
     
-    # Agrupar por semana
-    df_semanas = df_instaladas.groupby('SEMANA').size().reset_index(name='INSTALADAS')
-    df_semanas['SEMANA'] = 'Semana ' + df_semanas['SEMANA'].astype(str)
+    # Agrupar por semana y calcular min/max fechas
+    df_semanas_agg = df_instaladas.groupby('SEMANA').agg({
+        'FECHA': ['min', 'max']
+    }).reset_index()
     
-    return df_semanas.sort_values('SEMANA')
+    df_semanas_agg.columns = ['SEMANA_NUM', 'FECHA_MIN', 'FECHA_MAX']
+    
+    # Contar instaladas por semana
+    df_semanas_count = df_instaladas.groupby('SEMANA').size().reset_index(name='INSTALADAS')
+    df_semanas_count.columns = ['SEMANA_NUM', 'INSTALADAS']
+    
+    # Combinar
+    df_semanas = df_semanas_agg.merge(df_semanas_count, on='SEMANA_NUM')
+    
+    # Crear etiqueta de semana con rango de fechas
+    def format_semana_label(row):
+        semana_num = int(row['SEMANA_NUM'])
+        fecha_min = pd.to_datetime(row['FECHA_MIN'])
+        fecha_max = pd.to_datetime(row['FECHA_MAX'])
+        
+        # Nombres de meses
+        mes_nombres_cortos = {
+            1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr',
+            5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago',
+            9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
+        }
+        
+        # Nombres de días
+        dias_nombres = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+        
+        mes_min = mes_nombres_cortos[fecha_min.month]
+        mes_max = mes_nombres_cortos[fecha_max.month]
+        dia_min = fecha_min.day
+        dia_max = fecha_max.day
+        dia_semana_min = dias_nombres[fecha_min.weekday()]
+        dia_semana_max = dias_nombres[fecha_max.weekday()]
+        
+        # Si es del mismo mes
+        if fecha_min.month == fecha_max.month:
+            return f"Semana {semana_num}: {dia_min}-{dia_max} {mes_min} ({dia_semana_min}-{dia_semana_max})"
+        else:
+            return f"Semana {semana_num}: {dia_min} {mes_min} - {dia_max} {mes_max} ({dia_semana_min}-{dia_semana_max})"
+    
+    df_semanas['SEMANA'] = df_semanas.apply(format_semana_label, axis=1)
+    
+    # Retornar solo las columnas necesarias
+    result = df_semanas[['SEMANA', 'INSTALADAS']].sort_values('SEMANA')
+    
+    return result
 
 @st.cache_data(ttl=3600)
 def get_comparativo_semanas_multiples_meses():
