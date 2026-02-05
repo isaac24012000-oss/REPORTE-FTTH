@@ -488,21 +488,16 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
             9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
         }
         
-        # Nombres de días
-        dias_nombres = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-        
         mes_min = mes_nombres_cortos[fecha_min.month]
         mes_max = mes_nombres_cortos[fecha_max.month]
         dia_min = fecha_min.day
         dia_max = fecha_max.day
-        dia_semana_min = dias_nombres[fecha_min.weekday()]
-        dia_semana_max = dias_nombres[fecha_max.weekday()]
         
         # Si es del mismo mes
         if fecha_min.month == fecha_max.month:
-            return f"Semana {semana_num}: {dia_min}-{dia_max} {mes_min} ({dia_semana_min}-{dia_semana_max})"
+            return f"{dia_min}-{dia_max} {mes_min}"
         else:
-            return f"Semana {semana_num}: {dia_min} {mes_min} - {dia_max} {mes_max} ({dia_semana_min}-{dia_semana_max})"
+            return f"{dia_min} {mes_min}-{dia_max} {mes_max}"
     
     df_semanas['SEMANA'] = df_semanas.apply(format_semana_label, axis=1)
     
@@ -1625,12 +1620,13 @@ with tab1:
                 x=0.5,
                 xanchor='center'
             ),
-            height=450,
-            margin=dict(l=50, r=50, t=60, b=50),
+            height=550,
+            margin=dict(l=50, r=50, t=80, b=120),
             xaxis_title="Semana",
             yaxis_title="Cantidad de Instaladas",
             xaxis=dict(
-                tickfont=dict(size=11, color='#64748b'),
+                tickfont=dict(size=10, color='#64748b'),
+                tickangle=-45,
             ),
             yaxis=dict(
                 gridcolor='rgba(0,0,0,0.05)',
