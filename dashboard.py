@@ -428,12 +428,11 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
-        return pd.DataFrame()
+        return None
     
     df_temp = df_drive.copy()
     
-    # Limpiar ESTADO
-    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip().str.upper()
+    # Sin limpiezas, solo conversion
     df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
     
     # Filtrar por mes y día
@@ -451,8 +450,8 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
     # Filtrar por mes y día
     df_filtrado = df_temp[(df_temp['FECHA_MES'] == mes_num) & (df_temp['FECHA_DIA'] == dia)]
     
-    # Mostrar todos los estados únicos en ese día
-    return df_filtrado[['FECHA', 'ESTADO']].drop_duplicates()
+    # Retornar TODOS los registros sin filtrar
+    return df_filtrado
 
 @st.cache_data(ttl=3600)
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
@@ -1690,9 +1689,11 @@ with tab1:
         # DEBUG: Mostrar registros en Febrero 3
         with st.expander("🔍 Debug - Ver qué datos se están contando"):
             debug_df = debug_instaladas_por_dia(mes_nombre_analisis, 3)
-            st.write("Registros únicos de ESTADO en Febrero 3:")
-            st.dataframe(debug_df, use_container_width=True)
-            st.write(f"Total de registros con INSTALADO en Febrero 3: {len(debug_instaladas_por_dia(mes_nombre_analisis, 3))}")
+            st.write(f"**Total de registros en Febrero 3:** {len(debug_df)}")
+            st.write(f"**Estados únicos encontrados:**")
+            st.write(debug_df['ESTADO'].value_counts().to_dict())
+            st.write("**Primeros 20 registros completos:**")
+            st.dataframe(debug_df.head(20), use_container_width=True)
         
         # Calcular estadísticas
         max_dia = df_tabla_semanas.loc[df_tabla_semanas['Instaladas'].idxmax(), 'Día']
