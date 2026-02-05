@@ -453,7 +453,7 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
     # Retornar TODOS los registros sin filtrar
     return df_filtrado
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=60)  # Reducir a 60 segundos para debug
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     """Obtiene instaladas por DÍA para un mes específico.
     Retorna un DataFrame con día y cantidad de instaladas"""
