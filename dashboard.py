@@ -424,7 +424,7 @@ def get_meses_disponibles():
 
 @st.cache_data(ttl=3600)
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
-    """Obtiene instaladas por DÍA para un mes específico (antes era por semana).
+    """Obtiene instaladas por DÍA para un mes específico.
     Retorna un DataFrame con día y cantidad de instaladas"""
     df_drive = load_drive_data()
     
@@ -432,8 +432,15 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
         return pd.DataFrame()
     
     df_temp = df_drive.copy()
-    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
-    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    
+    # Limpiar columna ESTADO: strip() y case-insensitive
+    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip().str.upper()
+    
+    # Intentar usar FECHA DE primero (más específica), luego FECHA
+    if 'FECHA DE' in df_temp.columns:
+        df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA DE'], errors='coerce')
+    else:
+        df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
     
     # Mapeo de meses
     mes_numeros = {
@@ -446,18 +453,14 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     if mes_num is None:
         return pd.DataFrame()
     
-    # Filtrar por mes Y AÑO usando la columna FECHA (más confiable)
-    # Solo incluir registros donde mes Y año coincidan
+    # Filtrar solo registros válidos
     df_temp = df_temp[df_temp['FECHA'].notna()]
     
-    # Validar que el mes y año del registro coincidan exactamente
+    # Extraer mes y año
     df_temp['FECHA_MES'] = df_temp['FECHA'].dt.month
     df_temp['FECHA_AÑO'] = df_temp['FECHA'].dt.year
     
-    # Detectar el año/mes más frecuente en los datos para ese mes
-    año_actual = datetime.now().year
-    
-    # Filtrar solo registros donde el mes coincida
+    # Filtrar por mes
     df_mes = df_temp[df_temp['FECHA_MES'] == mes_num].copy()
     
     if df_mes.empty:
@@ -467,7 +470,7 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     año_filtro = df_mes['FECHA_AÑO'].max()
     df_mes = df_mes[df_mes['FECHA_AÑO'] == año_filtro]
     
-    # Filtrar solo instaladas
+    # Filtrar solo INSTALADO (sin espacios, case-insensitive)
     df_instaladas = df_mes[df_mes['ESTADO'] == 'INSTALADO'].copy()
     
     if df_instaladas.empty:
