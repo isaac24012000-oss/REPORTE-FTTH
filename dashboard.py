@@ -1560,7 +1560,7 @@ with tab1:
         mes_nombre_analisis = None
     
     if mes_nombre_analisis:
-        # Obtener datos de instaladas por semana
+        # Obtener datos de instaladas por día
         df_semanas = get_instaladas_por_semana(mes_nombre_analisis)
     
     if not df_semanas.empty and len(df_semanas) > 0:
@@ -1568,7 +1568,7 @@ with tab1:
         fig_semanas = go.Figure()
         
         fig_semanas.add_trace(go.Bar(
-            x=df_semanas['SEMANA'],
+            x=df_semanas['DIA'],
             y=df_semanas['INSTALADAS'],
             marker=dict(
                 color=df_semanas['INSTALADAS'],
