@@ -424,8 +424,8 @@ def get_meses_disponibles():
 
 @st.cache_data(ttl=3600)
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
-    """Obtiene instaladas por semana para un mes específico.
-    Retorna un DataFrame con semana (con rango de fechas) y cantidad de instaladas"""
+    """Obtiene instaladas por DÍA para un mes específico (antes era por semana).
+    Retorna un DataFrame con día y cantidad de instaladas"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -458,66 +458,28 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     if df_instaladas.empty:
         return pd.DataFrame()
     
-    # Crear semanas naturales del mes (1-7, 8-14, 15-21, 22-28, 29-31)
-    def get_semana_natural(dia):
-        if dia <= 7:
-            return 1
-        elif dia <= 14:
-            return 2
-        elif dia <= 21:
-            return 3
-        elif dia <= 28:
-            return 4
-        else:
-            return 5
-    
+    # Extraer día del mes
     df_instaladas['DIA'] = df_instaladas['FECHA'].dt.day
-    df_instaladas['SEMANA_NUM'] = df_instaladas['DIA'].apply(get_semana_natural)
+    df_instaladas['MES_NUM'] = df_instaladas['FECHA'].dt.month
     
-    # Crear rango de días para cada semana
-    def get_rango_semana(semana_num, mes_años):
-        """Obtiene el rango de días de una semana"""
-        if semana_num == 1:
-            return 1, 7
-        elif semana_num == 2:
-            return 8, 14
-        elif semana_num == 3:
-            return 15, 21
-        elif semana_num == 4:
-            return 22, 28
-        else:
-            # Para la última semana, obtener último día del mes
-            fecha_sample = pd.to_datetime(mes_años)
-            ultimo_dia = pd.Timestamp(year=fecha_sample.year, month=fecha_sample.month, day=1) + pd.DateOffset(months=1) - pd.DateOffset(days=1)
-            return 29, ultimo_dia.day
+    # Agrupar por día y contar
+    df_dias = df_instaladas.groupby('DIA').size().reset_index(name='INSTALADAS')
     
-    # Obtener la fecha de referencia del mes
-    mes_num = df_instaladas['FECHA'].dt.month.iloc[0]
-    año_num = df_instaladas['FECHA'].dt.year.iloc[0]
+    # Obtener mes para la etiqueta
+    mes_num = df_instaladas['MES_NUM'].iloc[0]
+    mes_nombres_cortos = {
+        1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr',
+        5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago',
+        9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
+    }
+    mes_str = mes_nombres_cortos[mes_num]
     
-    # Agrupar por semana y contar
-    df_semanas_count = df_instaladas.groupby('SEMANA_NUM').size().reset_index(name='INSTALADAS')
+    # Crear etiqueta e formato "1 Ene", "2 Ene", etc.
+    df_dias['DIA_ETIQUETA'] = df_dias['DIA'].astype(str) + ' ' + mes_str
     
-    # Asegurar que esté ordenado numéricamente por semana
-    df_semanas_count = df_semanas_count.sort_values('SEMANA_NUM').reset_index(drop=True)
-    
-    # Agregar rango de fechas
-    def crear_etiqueta_semana(semana_num):
-        dia_inicio, dia_fin = get_rango_semana(semana_num, f'{año_num}-{mes_num:02d}-01')
-        
-        mes_nombres_cortos = {
-            1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr',
-            5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago',
-            9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
-        }
-        
-        mes_str = mes_nombres_cortos[mes_num]
-        return f"{dia_inicio}-{dia_fin} {mes_str}"
-    
-    df_semanas_count['SEMANA'] = df_semanas_count['SEMANA_NUM'].apply(crear_etiqueta_semana)
-    
-    # Retornar solo las columnas necesarias (ya está ordenado por SEMANA_NUM)
-    result = df_semanas_count[['SEMANA', 'INSTALADAS']].copy()
+    # Retornar ordenado por día
+    result = df_dias[['DIA_ETIQUETA', 'INSTALADAS']].copy()
+    result.columns = ['DIA', 'INSTALADAS']
     
     return result
 
@@ -1630,18 +1592,18 @@ with tab1:
         
         fig_semanas.update_layout(
             title=dict(
-                text=f"Distribucion de Instaladas por Semana - {mes_seleccionado_display}",
+                text=f"Distribución Diaria de Instaladas - {mes_seleccionado_display}",
                 font=dict(size=16, color='#1e293b', family='Arial'),
                 x=0.5,
                 xanchor='center'
             ),
             height=550,
-            margin=dict(l=50, r=50, t=80, b=120),
-            xaxis_title="Semana",
+            margin=dict(l=50, r=50, t=80, b=150),
+            xaxis_title="Día",
             yaxis_title="Cantidad de Instaladas",
             xaxis=dict(
-                tickfont=dict(size=10, color='#64748b'),
-                tickangle=-45,
+                tickfont=dict(size=9, color='#64748b'),
+                tickangle=-90,
             ),
             yaxis=dict(
                 gridcolor='rgba(0,0,0,0.05)',
@@ -1659,32 +1621,32 @@ with tab1:
         st.plotly_chart(fig_semanas, use_container_width=True, config={'displayModeBar': False})
         
         # Mostrar tabla de datos
-        st.markdown("#### Detalle por Semana")
+        st.markdown("#### Detalle Diario")
         df_tabla_semanas = df_semanas.copy()
-        df_tabla_semanas.columns = ['Semana', 'Instaladas']
+        df_tabla_semanas.columns = ['Día', 'Instaladas']
         
         # Calcular estadísticas
-        max_semana = df_tabla_semanas.loc[df_tabla_semanas['Instaladas'].idxmax(), 'Semana']
+        max_dia = df_tabla_semanas.loc[df_tabla_semanas['Instaladas'].idxmax(), 'Día']
         max_valor = df_tabla_semanas['Instaladas'].max()
         min_valor = df_tabla_semanas['Instaladas'].min()
         promedio = df_tabla_semanas['Instaladas'].mean()
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Semana con + Instaladas", max_semana, f"+{max_valor}")
+            st.metric("Día con + Instaladas", max_dia, f"+{max_valor}")
         with col2:
-            st.metric("Máximo por Semana", max_valor)
+            st.metric("Máximo por Día", max_valor)
         with col3:
-            st.metric("Mínimo por Semana", min_valor)
+            st.metric("Mínimo por Día", min_valor)
         with col4:
-            st.metric("Promedio por Semana", f"{promedio:.1f}")
+            st.metric("Promedio por Día", f"{promedio:.1f}")
         
         st.dataframe(
             df_tabla_semanas,
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Semana": st.column_config.TextColumn(width=200),
+                "Día": st.column_config.TextColumn(width=200),
                 "Instaladas": st.column_config.NumberColumn(width=150)
             }
         )
