@@ -60,8 +60,8 @@ def get_total_leads_and_conversion(mes_seleccionado="Noviembre"):
 
 @st.cache_data(ttl=3600)
 def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
-    """Calcula la conversión: Total Transacciones (DRIVE) / Con Cobertura (MANTRA)
-    = Total transacciones en DRIVE / Registros con cobertura en MANTRA"""
+    """Calcula la conversión: Ventas Instaladas (DRIVE) / Con Cobertura (MANTRA)
+    = Transacciones INSTALADAS en DRIVE / Registros con cobertura en MANTRA"""
     df_mantra = load_mantra_data()
     df_drive = load_drive_data()
     
@@ -76,29 +76,15 @@ def get_conversion_mantra_mes(mes_seleccionado="Noviembre"):
     if con_cobertura == 0:
         return 0
     
-    # Obtener Total de Transacciones de DRIVE para el mes
-    # Usar columna MES si existe, sino usar FECHA
-    if 'MES' in df_drive.columns:
-        df_mes_drive = df_drive[df_drive['MES'] == mes_seleccionado]
-    else:
-        df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-        mes_numeros = {
-            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
-            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
-            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-        }
-        mes_num = mes_numeros.get(mes_seleccionado, None)
-        if mes_num is None:
-            return 0
-        df_mes_drive = df_drive[df_drive['FECHA'].dt.month == mes_num]
+    # Obtener Ventas INSTALADAS del DRIVE para el mes
+    # Solo contar ESTADO = 'INSTALADO' (no PENDIENTE ni CANCELADO)
+    ventas_instaladas = count_instaladas_con_regla(df_drive, None, mes_nombre=mes_seleccionado)
     
-    total_transacciones = len(df_mes_drive)
-    
-    if total_transacciones == 0:
+    if ventas_instaladas == 0:
         return 0
     
-    # Conversión = Total Transacciones / Con Cobertura
-    conversion_pct = round((total_transacciones / con_cobertura * 100)) if con_cobertura > 0 else 0
+    # Conversión = Ventas Instaladas / Con Cobertura
+    conversion_pct = round((ventas_instaladas / con_cobertura * 100)) if con_cobertura > 0 else 0
     return conversion_pct
 
 @st.cache_data(ttl=3600)
