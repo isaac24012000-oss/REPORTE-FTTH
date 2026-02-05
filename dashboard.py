@@ -539,8 +539,8 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
 
 @st.cache_data(ttl=3600)
 def get_comparativo_semanas_multiples_meses():
-    """Obtiene un comparativo de instaladas por semana para todos los meses disponibles.
-    Retorna un DataFrame con semana y cantidad por cada mes"""
+    """Obtiene un comparativo de instaladas por DÍA para todos los meses disponibles.
+    Retorna un DataFrame con día y cantidad por cada mes"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -565,15 +565,17 @@ def get_comparativo_semanas_multiples_meses():
         }
         df_instaladas['MES'] = df_instaladas['FECHA'].dt.month.map(mes_nombres)
     
-    # Calcular número de semana
-    df_instaladas['SEMANA'] = df_instaladas['FECHA'].dt.isocalendar().week
+    # Extraer día del mes
+    df_instaladas['DIA'] = df_instaladas['FECHA'].dt.day
     
-    # Agrupar por mes y semana
-    df_pivot = df_instaladas.groupby(['MES', 'SEMANA']).size().reset_index(name='INSTALADAS')
+    # Agrupar por mes y día
+    df_pivot = df_instaladas.groupby(['MES', 'DIA']).size().reset_index(name='INSTALADAS')
     
-    # Crear tabla pivote (meses como columnas, semanas como filas)
-    df_comparativo = df_pivot.pivot(index='SEMANA', columns='MES', values='INSTALADAS').fillna(0).astype(int)
-    df_comparativo['SEMANA'] = 'Semana ' + df_comparativo.index.astype(str)
+    # Crear tabla pivote (meses como columnas, días como filas)
+    df_comparativo = df_pivot.pivot(index='DIA', columns='MES', values='INSTALADAS').fillna(0).astype(int)
+    
+    # Ordenar por día
+    df_comparativo = df_comparativo.sort_index()
     
     return df_comparativo
 
@@ -1716,9 +1718,9 @@ with tab1:
     else:
         st.warning(f"No hay datos de instaladas para {mes_seleccionado_display}")
 
-# TAB 2: Comparativo de semanas entre meses
+# TAB 2: Comparativo de días entre meses
 with tab2:
-    st.markdown("#### Comparativa de Instaladas por Semana (Todos los Meses)")
+    st.markdown("#### Comparativa de Instaladas por Día (Todos los Meses)")
     
     df_comparativo = get_comparativo_semanas_multiples_meses()
     
@@ -1727,30 +1729,33 @@ with tab2:
         fig_comparativo = go.Figure()
         
         # Agregar línea por cada mes
-        for mes_col in df_comparativo.columns[:-1]:  # Excluir la columna SEMANA
+        for mes_col in df_comparativo.columns:
             fig_comparativo.add_trace(go.Scatter(
                 x=df_comparativo.index,
                 y=df_comparativo[mes_col],
                 mode='lines+markers',
                 name=mes_col,
-                line=dict(width=2),
-                marker=dict(size=8),
-                hovertemplate='<b>Semana %{x}</b><br><b>' + mes_col + ':</b> %{y}<extra></extra>'
+                line=dict(width=2.5),
+                marker=dict(size=6),
+                hovertemplate='<b>Día %{x}</b><br><b>' + mes_col + ':</b> %{y}<extra></extra>'
             ))
         
         fig_comparativo.update_layout(
             title=dict(
-                text="Comparativa de Instaladas por Semana (Multi-Mes)",
+                text="Comparativa de Instaladas por Día (Todos los Meses)",
                 font=dict(size=16, color='#1e293b', family='Arial'),
                 x=0.5,
                 xanchor='center'
             ),
-            height=500,
-            margin=dict(l=50, r=50, t=60, b=50),
-            xaxis_title="Número de Semana",
+            height=550,
+            margin=dict(l=60, r=60, t=80, b=80),
+            xaxis_title="Día del Mes",
             yaxis_title="Cantidad de Instaladas",
             xaxis=dict(
                 tickfont=dict(size=11, color='#64748b'),
+                tickmode='linear',
+                tick0=1,
+                dtick=2
             ),
             yaxis=dict(
                 gridcolor='rgba(0,0,0,0.05)',
@@ -1776,7 +1781,7 @@ with tab2:
         st.plotly_chart(fig_comparativo, use_container_width=True, config={'displayModeBar': False})
         
         # Mostrar tabla de comparativo
-        st.markdown("#### Tabla Comparativa")
+        st.markdown("#### Tabla Comparativa por Día")
         st.dataframe(
             df_comparativo,
             use_container_width=True,
