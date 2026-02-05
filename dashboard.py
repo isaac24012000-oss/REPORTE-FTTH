@@ -456,7 +456,8 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
 @st.cache_data(ttl=60)  # Reducir a 60 segundos para debug
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     """Obtiene instaladas por DÍA para un mes específico.
-    Retorna un DataFrame con día y cantidad de instaladas"""
+    Retorna un DataFrame con día y cantidad de instaladas
+    Filtra por fecha actual para no mostrar registros futuros"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -479,6 +480,10 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     
     # Filtrar por fecha válida
     df_temp = df_temp[df_temp['FECHA'].notna()]
+    
+    # FILTRO POR FECHA ACTUAL - no mostrar fechas futuras
+    fecha_actual = pd.Timestamp.today()
+    df_temp = df_temp[df_temp['FECHA'] <= fecha_actual]
     
     # Extraer mes y año de FECHA
     df_temp['FECHA_MES'] = df_temp['FECHA'].dt.month
@@ -540,7 +545,8 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
 @st.cache_data(ttl=3600)
 def get_comparativo_semanas_multiples_meses():
     """Obtiene un comparativo de instaladas por DÍA para todos los meses disponibles.
-    Retorna un DataFrame con día y cantidad por cada mes"""
+    Retorna un DataFrame con día y cantidad por cada mes
+    Filtra por fecha actual para no mostrar registros futuros"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
@@ -549,6 +555,10 @@ def get_comparativo_semanas_multiples_meses():
     df_temp = df_drive.copy()
     df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
     df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    
+    # FILTRO POR FECHA ACTUAL - no mostrar fechas futuras
+    fecha_actual = pd.Timestamp.today()
+    df_temp = df_temp[df_temp['FECHA'] <= fecha_actual]
     
     # Filtrar solo instaladas
     df_instaladas = df_temp[df_temp['ESTADO'] == 'INSTALADO'].copy()
