@@ -1176,11 +1176,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# BOTÓN PARA LIMPIAR CACHE (DEL USUARIO)
-if st.button("🔄 LIMPIAR CACHE Y RECARGAR", key="btn_clear_cache"):
-    st.cache_data.clear()
-    st.rerun()
-
 # Filtros mejorados con layout dinámico
 st.markdown("### ⚙️ Filtros y Opciones")
 col_filtros = st.columns(3, gap="medium")
