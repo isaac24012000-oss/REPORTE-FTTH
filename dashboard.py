@@ -385,6 +385,44 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     return len(df_instaladas)
 
 @st.cache_data(ttl=3600)
+def get_meses_disponibles():
+    """Obtiene lista de meses únicos disponibles en los datos con su año.
+    Retorna lista de tuplas (mes_año, mes_nombre, año)"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return []
+    
+    df_temp = df_drive.copy()
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    
+    # Extraer año y mes
+    df_temp['AÑO'] = df_temp['FECHA'].dt.year
+    df_temp['MES_NUM'] = df_temp['FECHA'].dt.month
+    
+    # Obtener combinaciones únicas de año y mes
+    meses_unicos = df_temp.groupby(['AÑO', 'MES_NUM']).size().reset_index(name='count')
+    meses_unicos = meses_unicos.sort_values(['AÑO', 'MES_NUM'], ascending=[False, False])
+    
+    # Mapear números a nombres
+    mes_nombres = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    }
+    
+    # Crear lista con formato "Mes Año"
+    meses_disponibles = []
+    for _, row in meses_unicos.iterrows():
+        año = int(row['AÑO'])
+        mes_num = int(row['MES_NUM'])
+        mes_nombre = mes_nombres[mes_num]
+        mes_año = f"{mes_nombre} {año}"
+        meses_disponibles.append((mes_año, mes_nombre, año, mes_num))
+    
+    return meses_disponibles
+
+@st.cache_data(ttl=3600)
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     """Obtiene instaladas por semana para un mes específico.
     Retorna un DataFrame con semana y cantidad de instaladas"""
@@ -1480,18 +1518,31 @@ tab1, tab2 = st.tabs(["Análisis por Semana (Mes)", "Comparativo Multi-Mes"])
 
 # TAB 1: Análisis de semanas para un mes seleccionado
 with tab1:
-    col_mes_sel, col_espacio = st.columns([2, 3])
-    with col_mes_sel:
-        mes_analisis = st.selectbox(
-            "Selecciona un mes para analizar:",
-            ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-            index=10,  # Noviembre por defecto
-            key="mes_analisis"
-        )
+    # Obtener meses disponibles
+    meses_disp = get_meses_disponibles()
     
-    # Obtener datos de instaladas por semana
-    df_semanas = get_instaladas_por_semana(mes_analisis)
+    if meses_disp:
+        # Crear lista de opciones con formato "Mes Año"
+        opciones_meses = [mes_año for mes_año, _, _, _ in meses_disp]
+        
+        col_mes_sel, col_espacio = st.columns([2, 3])
+        with col_mes_sel:
+            mes_seleccionado_display = st.selectbox(
+                "Selecciona un mes para analizar:",
+                opciones_meses,
+                index=0,  # Primer mes disponible por defecto
+                key="mes_analisis"
+            )
+        
+        # Encontrar el mes_nombre del mes seleccionado
+        mes_nombre_analisis = next((mes_nombre for mes_año, mes_nombre, _, _ in meses_disp if mes_año == mes_seleccionado_display), None)
+    else:
+        st.warning("No hay datos disponibles en los registros")
+        mes_nombre_analisis = None
+    
+    if mes_nombre_analisis:
+        # Obtener datos de instaladas por semana
+        df_semanas = get_instaladas_por_semana(mes_nombre_analisis)
     
     if not df_semanas.empty and len(df_semanas) > 0:
         # Crear gráfico de barras
@@ -1522,7 +1573,7 @@ with tab1:
         
         fig_semanas.update_layout(
             title=dict(
-                text=f"Distribucion de Instaladas por Semana - {mes_analisis}",
+                text=f"Distribucion de Instaladas por Semana - {mes_seleccionado_display}",
                 font=dict(size=16, color='#1e293b', family='Arial'),
                 x=0.5,
                 xanchor='center'
@@ -1580,7 +1631,7 @@ with tab1:
             }
         )
     else:
-        st.warning(f"No hay datos de instaladas para {mes_analisis}")
+        st.warning(f"No hay datos de instaladas para {mes_seleccionado_display}")
 
 # TAB 2: Comparativo de semanas entre meses
 with tab2:
