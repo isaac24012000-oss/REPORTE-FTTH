@@ -385,6 +385,88 @@ def count_instaladas_con_regla(df, fecha_mes_num, fecha_mes_es_noviembre=False, 
     return len(df_instaladas)
 
 @st.cache_data(ttl=3600)
+def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
+    """Obtiene instaladas por semana para un mes específico.
+    Retorna un DataFrame con semana y cantidad de instaladas"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return pd.DataFrame()
+    
+    df_temp = df_drive.copy()
+    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    
+    # Filtrar por mes
+    if 'MES' in df_temp.columns:
+        df_mes = df_temp[df_temp['MES'] == mes_seleccionado].copy()
+    else:
+        mes_numeros = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros.get(mes_seleccionado, None)
+        if mes_num is None:
+            return pd.DataFrame()
+        df_mes = df_temp[df_temp['FECHA'].dt.month == mes_num]
+    
+    if df_mes.empty:
+        return pd.DataFrame()
+    
+    # Filtrar solo instaladas
+    df_instaladas = df_mes[df_mes['ESTADO'] == 'INSTALADO'].copy()
+    
+    # Calcular número de semana (isocalendar)
+    df_instaladas['SEMANA'] = df_instaladas['FECHA'].dt.isocalendar().week
+    
+    # Agrupar por semana
+    df_semanas = df_instaladas.groupby('SEMANA').size().reset_index(name='INSTALADAS')
+    df_semanas['SEMANA'] = 'Semana ' + df_semanas['SEMANA'].astype(str)
+    
+    return df_semanas.sort_values('SEMANA')
+
+@st.cache_data(ttl=3600)
+def get_comparativo_semanas_multiples_meses():
+    """Obtiene un comparativo de instaladas por semana para todos los meses disponibles.
+    Retorna un DataFrame con semana y cantidad por cada mes"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return pd.DataFrame()
+    
+    df_temp = df_drive.copy()
+    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    
+    # Filtrar solo instaladas
+    df_instaladas = df_temp[df_temp['ESTADO'] == 'INSTALADO'].copy()
+    
+    if df_instaladas.empty:
+        return pd.DataFrame()
+    
+    # Obtener columna MES si existe, sino calcularla
+    if 'MES' not in df_instaladas.columns:
+        mes_nombres = {
+            1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+            5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+            9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+        }
+        df_instaladas['MES'] = df_instaladas['FECHA'].dt.month.map(mes_nombres)
+    
+    # Calcular número de semana
+    df_instaladas['SEMANA'] = df_instaladas['FECHA'].dt.isocalendar().week
+    
+    # Agrupar por mes y semana
+    df_pivot = df_instaladas.groupby(['MES', 'SEMANA']).size().reset_index(name='INSTALADAS')
+    
+    # Crear tabla pivote (meses como columnas, semanas como filas)
+    df_comparativo = df_pivot.pivot(index='SEMANA', columns='MES', values='INSTALADAS').fillna(0).astype(int)
+    df_comparativo['SEMANA'] = 'Semana ' + df_comparativo.index.astype(str)
+    
+    return df_comparativo
+
+@st.cache_data(ttl=3600)
 def get_nombres_alternativos(asesor):
     """Obtiene múltiples variantes del nombre del asesor para búsqueda flexible"""
     nombres = [asesor.strip()]
@@ -1387,6 +1469,187 @@ with col3:
         hovermode='closest'
     )
     st.plotly_chart(fig_eff, use_container_width=True, config={'displayModeBar': False})
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+# ============= ANÁLISIS DE INSTALADAS POR SEMANA =============
+st.markdown("### 📊 Análisis de Instaladas por Semana")
+
+# Crear dos tabs: uno para mes individual y otro para comparativo
+tab1, tab2 = st.tabs(["Análisis por Semana (Mes)", "Comparativo Multi-Mes"])
+
+# TAB 1: Análisis de semanas para un mes seleccionado
+with tab1:
+    col_mes_sel, col_espacio = st.columns([2, 3])
+    with col_mes_sel:
+        mes_analisis = st.selectbox(
+            "Selecciona un mes para analizar:",
+            ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+            index=10,  # Noviembre por defecto
+            key="mes_analisis"
+        )
+    
+    # Obtener datos de instaladas por semana
+    df_semanas = get_instaladas_por_semana(mes_analisis)
+    
+    if not df_semanas.empty and len(df_semanas) > 0:
+        # Crear gráfico de barras
+        fig_semanas = go.Figure()
+        
+        fig_semanas.add_trace(go.Bar(
+            x=df_semanas['SEMANA'],
+            y=df_semanas['INSTALADAS'],
+            marker=dict(
+                color=df_semanas['INSTALADAS'],
+                colorscale='Blues',
+                line=dict(color='white', width=2),
+                opacity=0.85,
+                showscale=True,
+                colorbar=dict(
+                    title="Instaladas",
+                    tickfont=dict(size=10),
+                    thickness=15,
+                    len=0.7
+                )
+            ),
+            text=df_semanas['INSTALADAS'],
+            textposition='outside',
+            textfont=dict(size=13, color='#1e293b', family='Arial', weight='bold'),
+            hovertemplate='<b>%{x}</b><br><b>Instaladas:</b> <b>%{y}</b><extra></extra>',
+            name='Instaladas'
+        ))
+        
+        fig_semanas.update_layout(
+            title=dict(
+                text=f"Distribucion de Instaladas por Semana - {mes_analisis}",
+                font=dict(size=16, color='#1e293b', family='Arial'),
+                x=0.5,
+                xanchor='center'
+            ),
+            height=450,
+            margin=dict(l=50, r=50, t=60, b=50),
+            xaxis_title="Semana",
+            yaxis_title="Cantidad de Instaladas",
+            xaxis=dict(
+                tickfont=dict(size=11, color='#64748b'),
+            ),
+            yaxis=dict(
+                gridcolor='rgba(0,0,0,0.05)',
+                showgrid=True,
+                zeroline=False,
+                tickfont=dict(size=11, color='#64748b'),
+            ),
+            plot_bgcolor='rgba(248, 250, 252, 0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(size=11, family='Arial', color='#1e293b'),
+            hovermode='x unified',
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig_semanas, use_container_width=True, config={'displayModeBar': False})
+        
+        # Mostrar tabla de datos
+        st.markdown("#### Detalle por Semana")
+        df_tabla_semanas = df_semanas.copy()
+        df_tabla_semanas.columns = ['Semana', 'Instaladas']
+        
+        # Calcular estadísticas
+        max_semana = df_tabla_semanas.loc[df_tabla_semanas['Instaladas'].idxmax(), 'Semana']
+        max_valor = df_tabla_semanas['Instaladas'].max()
+        min_valor = df_tabla_semanas['Instaladas'].min()
+        promedio = df_tabla_semanas['Instaladas'].mean()
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Semana con + Instaladas", max_semana, f"+{max_valor}")
+        with col2:
+            st.metric("Máximo por Semana", max_valor)
+        with col3:
+            st.metric("Mínimo por Semana", min_valor)
+        with col4:
+            st.metric("Promedio por Semana", f"{promedio:.1f}")
+        
+        st.dataframe(
+            df_tabla_semanas,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Semana": st.column_config.TextColumn(width=200),
+                "Instaladas": st.column_config.NumberColumn(width=150)
+            }
+        )
+    else:
+        st.warning(f"No hay datos de instaladas para {mes_analisis}")
+
+# TAB 2: Comparativo de semanas entre meses
+with tab2:
+    st.markdown("#### Comparativa de Instaladas por Semana (Todos los Meses)")
+    
+    df_comparativo = get_comparativo_semanas_multiples_meses()
+    
+    if not df_comparativo.empty:
+        # Crear gráfico de líneas para comparar meses
+        fig_comparativo = go.Figure()
+        
+        # Agregar línea por cada mes
+        for mes_col in df_comparativo.columns[:-1]:  # Excluir la columna SEMANA
+            fig_comparativo.add_trace(go.Scatter(
+                x=df_comparativo.index,
+                y=df_comparativo[mes_col],
+                mode='lines+markers',
+                name=mes_col,
+                line=dict(width=2),
+                marker=dict(size=8),
+                hovertemplate='<b>Semana %{x}</b><br><b>' + mes_col + ':</b> %{y}<extra></extra>'
+            ))
+        
+        fig_comparativo.update_layout(
+            title=dict(
+                text="Comparativa de Instaladas por Semana (Multi-Mes)",
+                font=dict(size=16, color='#1e293b', family='Arial'),
+                x=0.5,
+                xanchor='center'
+            ),
+            height=500,
+            margin=dict(l=50, r=50, t=60, b=50),
+            xaxis_title="Número de Semana",
+            yaxis_title="Cantidad de Instaladas",
+            xaxis=dict(
+                tickfont=dict(size=11, color='#64748b'),
+            ),
+            yaxis=dict(
+                gridcolor='rgba(0,0,0,0.05)',
+                showgrid=True,
+                zeroline=False,
+                tickfont=dict(size=11, color='#64748b'),
+            ),
+            plot_bgcolor='rgba(248, 250, 252, 0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(size=11, family='Arial', color='#1e293b'),
+            hovermode='x unified',
+            legend=dict(
+                x=1.02,
+                y=1,
+                xanchor='left',
+                yanchor='top',
+                bgcolor='rgba(255, 255, 255, 0.8)',
+                bordercolor='#e2e8f0',
+                borderwidth=1
+            )
+        )
+        
+        st.plotly_chart(fig_comparativo, use_container_width=True, config={'displayModeBar': False})
+        
+        # Mostrar tabla de comparativo
+        st.markdown("#### Tabla Comparativa")
+        st.dataframe(
+            df_comparativo,
+            use_container_width=True,
+            column_config={col: st.column_config.NumberColumn(width=100) for col in df_comparativo.columns}
+        )
+    else:
+        st.warning("No hay datos suficientes para el comparativo de meses")
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
