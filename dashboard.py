@@ -458,15 +458,32 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     if df_instaladas.empty:
         return pd.DataFrame()
     
-    # Extraer día del mes
+    # Extraer día del mes y validar que sean días válidos
     df_instaladas['DIA'] = df_instaladas['FECHA'].dt.day
     df_instaladas['MES_NUM'] = df_instaladas['FECHA'].dt.month
+    
+    # Obtener mes y año para validación
+    mes_num = df_instaladas['MES_NUM'].iloc[0]
+    año_num = df_instaladas['FECHA'].dt.year.iloc[0]
+    
+    # Calcular el último día válido del mes
+    if mes_num == 12:
+        último_día_mes = pd.Timestamp(year=año_num+1, month=1, day=1) - pd.DateOffset(days=1)
+    else:
+        último_día_mes = pd.Timestamp(year=año_num, month=mes_num+1, day=1) - pd.DateOffset(days=1)
+    
+    último_día_válido = último_día_mes.day
+    
+    # Filtrar solo datos con días válidos (1 a último día del mes)
+    df_instaladas = df_instaladas[(df_instaladas['DIA'] >= 1) & (df_instaladas['DIA'] <= último_día_válido)]
+    
+    if df_instaladas.empty:
+        return pd.DataFrame()
     
     # Agrupar por día y contar
     df_dias = df_instaladas.groupby('DIA').size().reset_index(name='INSTALADAS')
     
     # Obtener mes para la etiqueta
-    mes_num = df_instaladas['MES_NUM'].iloc[0]
     mes_nombres_cortos = {
         1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr',
         5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago',
@@ -474,7 +491,7 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     }
     mes_str = mes_nombres_cortos[mes_num]
     
-    # Crear etiqueta e formato "1 Ene", "2 Ene", etc.
+    # Crear etiqueta en formato "1 Feb", "2 Feb", etc.
     df_dias['DIA_ETIQUETA'] = df_dias['DIA'].astype(str) + ' ' + mes_str
     
     # Retornar ordenado por día
