@@ -435,22 +435,37 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
     df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
     
-    # Filtrar por mes
-    if 'MES' in df_temp.columns:
-        df_mes = df_temp[df_temp['MES'] == mes_seleccionado].copy()
-    else:
-        mes_numeros = {
-            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
-            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
-            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-        }
-        mes_num = mes_numeros.get(mes_seleccionado, None)
-        if mes_num is None:
-            return pd.DataFrame()
-        df_mes = df_temp[df_temp['FECHA'].dt.month == mes_num]
+    # Mapeo de meses
+    mes_numeros = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    
+    mes_num = mes_numeros.get(mes_seleccionado, None)
+    if mes_num is None:
+        return pd.DataFrame()
+    
+    # Filtrar por mes Y AÑO usando la columna FECHA (más confiable)
+    # Solo incluir registros donde mes Y año coincidan
+    df_temp = df_temp[df_temp['FECHA'].notna()]
+    
+    # Validar que el mes y año del registro coincidan exactamente
+    df_temp['FECHA_MES'] = df_temp['FECHA'].dt.month
+    df_temp['FECHA_AÑO'] = df_temp['FECHA'].dt.year
+    
+    # Detectar el año/mes más frecuente en los datos para ese mes
+    año_actual = datetime.now().year
+    
+    # Filtrar solo registros donde el mes coincida
+    df_mes = df_temp[df_temp['FECHA_MES'] == mes_num].copy()
     
     if df_mes.empty:
         return pd.DataFrame()
+    
+    # Si hay múltiples años, tomar el más reciente
+    año_filtro = df_mes['FECHA_AÑO'].max()
+    df_mes = df_mes[df_mes['FECHA_AÑO'] == año_filtro]
     
     # Filtrar solo instaladas
     df_instaladas = df_mes[df_mes['ESTADO'] == 'INSTALADO'].copy()
@@ -458,19 +473,14 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     if df_instaladas.empty:
         return pd.DataFrame()
     
-    # Extraer día del mes y validar que sean días válidos
+    # Extraer día del mes
     df_instaladas['DIA'] = df_instaladas['FECHA'].dt.day
-    df_instaladas['MES_NUM'] = df_instaladas['FECHA'].dt.month
-    
-    # Obtener mes y año para validación
-    mes_num = df_instaladas['MES_NUM'].iloc[0]
-    año_num = df_instaladas['FECHA'].dt.year.iloc[0]
     
     # Calcular el último día válido del mes
     if mes_num == 12:
-        último_día_mes = pd.Timestamp(year=año_num+1, month=1, day=1) - pd.DateOffset(days=1)
+        último_día_mes = pd.Timestamp(year=año_filtro+1, month=1, day=1) - pd.DateOffset(days=1)
     else:
-        último_día_mes = pd.Timestamp(year=año_num, month=mes_num+1, day=1) - pd.DateOffset(days=1)
+        último_día_mes = pd.Timestamp(year=año_filtro, month=mes_num+1, day=1) - pd.DateOffset(days=1)
     
     último_día_válido = último_día_mes.day
     
