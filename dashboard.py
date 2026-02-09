@@ -1691,15 +1691,6 @@ with tab1:
         df_tabla_semanas = df_semanas.copy()
         df_tabla_semanas.columns = ['Día', 'Instaladas']
         
-        # DEBUG: Mostrar registros en Febrero 3
-        with st.expander("🔍 Debug - Ver qué datos se están contando"):
-            debug_df = debug_instaladas_por_dia(mes_nombre_analisis, 3)
-            st.write(f"**Total de registros en Febrero 3:** {len(debug_df)}")
-            st.write(f"**Estados únicos encontrados:**")
-            st.write(debug_df['ESTADO'].value_counts().to_dict())
-            st.write("**Primeros 20 registros completos:**")
-            st.dataframe(debug_df.head(20), use_container_width=True)
-        
         # Calcular estadísticas
         max_dia = df_tabla_semanas.loc[df_tabla_semanas['Instaladas'].idxmax(), 'Día']
         max_valor = df_tabla_semanas['Instaladas'].max()
