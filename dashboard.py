@@ -1727,106 +1727,133 @@ with tab1:
         equipo_yazmin = ['ZIM_JESUSSZ_VTP', 'ZIM_INDIRAMM_VTP', 'ZIM_STEVENCM_VTP', 'ZIM_ZOILASM_VTP', 
                          'ZIM_FLAVIOTB_VTP', 'ZIM_MELANYOA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
         
-        # Calcular totales por equipo
-        def calcular_totales_equipo_local(lista_asesoras, mes_sel):
+        # Función para generar datos detallados de cada equipo
+        def generar_tabla_equipo(lista_asesoras, mes_sel, nombre_equipo):
             df_lista = load_lista_metas()
             df_drive = load_drive_data()
             
             if df_lista is None or df_drive is None:
-                return {'meta': 0, 'instalado': 0, 'pendiente': 0, 'cumplimiento': 0}
-            
-            # Total Meta
-            df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
-            total_meta = df_mes_lista[df_mes_lista['Asesor'].isin(lista_asesoras)]['Meta'].sum()
+                return None
             
             # Preparar DRIVE
             df_drive_clean = df_drive.copy()
             df_drive_clean['ASESOR'] = df_drive_clean['ASESOR'].astype(str).str.strip()
             df_drive_clean['ESTADO'] = df_drive_clean['ESTADO'].astype(str).str.strip()
-            
-            # Filtrar por mes
             df_mes_drive = df_drive_clean[df_drive_clean['MES'] == mes_sel]
             
-            # Total Instalado y Pendiente
+            # Obtener datos de LISTA
+            df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
+            
+            datos_tabla = []
+            total_meta = 0
             total_instalado = 0
             total_pendiente = 0
             
-            for asesor in lista_asesoras:
+            for idx, asesor in enumerate(lista_asesoras, 1):
+                # Meta
+                meta = df_mes_lista[df_mes_lista['Asesor'] == asesor]['Meta'].sum()
+                if meta == 0:
+                    meta = 0
+                
+                # Instalado y Pendiente
                 df_asesor = df_mes_drive[df_mes_drive['ASESOR'] == asesor]
-                total_instalado += len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
-                total_pendiente += len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
-            
-            # Cumplimiento
-            cumplimiento = round((total_instalado / total_meta * 100)) if total_meta > 0 else 0
+                instalado = len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
+                pendiente = len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
+                
+                # Alcance (Cumplimiento)
+                alcance = round((instalado / meta * 100)) if meta > 0 else 0
+                
+                datos_tabla.append({
+                    'pos': idx,
+                    'asesor': asesor,
+                    'meta': int(meta),
+                    'instalado': int(instalado),
+                    'pendiente': int(pendiente),
+                    'alcance': int(alcance)
+                })
+                
+                total_meta += meta
+                total_instalado += instalado
+                total_pendiente += pendiente
             
             return {
-                'meta': int(total_meta),
-                'instalado': int(total_instalado),
-                'pendiente': int(total_pendiente),
-                'cumplimiento': int(cumplimiento)
+                'datos': datos_tabla,
+                'totales': {
+                    'meta': int(total_meta),
+                    'instalado': int(total_instalado),
+                    'pendiente': int(total_pendiente),
+                    'alcance': round((total_instalado / total_meta * 100)) if total_meta > 0 else 0
+                }
             }
         
-        # Calcular datos de ambos equipos
-        datos_adrian = calcular_totales_equipo_local(equipo_adrian, mes_nombre_analisis)
-        datos_yazmin = calcular_totales_equipo_local(equipo_yazmin, mes_nombre_analisis)
+        # Generar datos de ambos equipos
+        datos_adrian_completo = generar_tabla_equipo(equipo_adrian, mes_nombre_analisis, "ADRIAN")
+        datos_yazmin_completo = generar_tabla_equipo(equipo_yazmin, mes_nombre_analisis, "YAZMIN")
         
-        # Crear tabla comparativa HTML
-        html_comparativa = '''<div style="display: flex; gap: 30px; margin: 20px 0;">
-<div style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 20px; color: white;">
-    <h3 style="text-align: center; margin: 0 0 20px 0; font-size: 24px;">👨‍💼 EQUIPO ADRIAN</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600; width: 50%;">META:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">INSTALADO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #10b981;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">PENDIENTE:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #f59e0b;">{}</td>
-        </tr>
-        <tr>
-            <td style="padding: 10px; font-weight: 600;">CUMPLIMIENTO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #fbbf24; background: rgba(0,0,0,0.2); border-radius: 5px;">{}%</td>
-        </tr>
-    </table>
-</div>
-
-<div style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; padding: 20px; color: white;">
-    <h3 style="text-align: center; margin: 0 0 20px 0; font-size: 24px;">👩‍💼 EQUIPO YAZMIN</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600; width: 50%;">META:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">INSTALADO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #10b981;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">PENDIENTE:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #f59e0b;">{}</td>
-        </tr>
-        <tr>
-            <td style="padding: 10px; font-weight: 600;">CUMPLIMIENTO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #fbbf24; background: rgba(0,0,0,0.2); border-radius: 5px;">{}%</td>
-        </tr>
-    </table>
-</div>
-</div>'''.format(
-            datos_adrian['meta'],
-            datos_adrian['instalado'],
-            datos_adrian['pendiente'],
-            datos_adrian['cumplimiento'],
-            datos_yazmin['meta'],
-            datos_yazmin['instalado'],
-            datos_yazmin['pendiente'],
-            datos_yazmin['cumplimiento']
-        )
+        # Crear tablas HTML detalladas
+        def crear_tabla_html_equipo(datos_equipo, nombre_equipo, color_header, color_accent):
+            if datos_equipo is None:
+                return ""
+            
+            html = f'''<div style="margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+            <thead>
+                <tr style="background: {color_header}; color: white;">
+                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">Nº ASESOR</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">ASESOR</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">OBJETIVO</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">INSTALADO</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">PENDIENTE</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700;">% ALCANCE</th>
+                </tr>
+            </thead>
+            <tbody>
+            '''
+            
+            # Agregar filas de datos
+            for item in datos_equipo['datos']:
+                color_fila = '#f9fafb' if item['pos'] % 2 == 0 else '#ffffff'
+                alcance_color = '#10b981' if item['alcance'] >= 70 else '#f59e0b' if item['alcance'] >= 50 else '#ef4444'
+                
+                html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600; color: {color_accent};">#{item['pos']}</td>
+                    <td style="padding: 12px; text-align: left; font-weight: 500;">{item['asesor']}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">{item['meta']}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: 600; color: #10b981;">{item['instalado']}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: 600; color: #f59e0b;">{item['pendiente']}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: 600; background-color: {alcance_color}22; color: {alcance_color}; border-radius: 4px;">{item['alcance']}%</td>
+                </tr>'''
+            
+            # Agregar fila de totales
+            totales = datos_equipo['totales']
+            alcance_total_color = '#10b981' if totales['alcance'] >= 70 else '#f59e0b' if totales['alcance'] >= 50 else '#ef4444'
+            html += f'''<tr style="background: {color_header}; color: white; font-weight: 700;">
+                    <td colspan="2" style="padding: 12px; text-align: center;">TOTALES</td>
+                    <td style="padding: 12px; text-align: center;">{totales['meta']}</td>
+                    <td style="padding: 12px; text-align: center;">{totales['instalado']}</td>
+                    <td style="padding: 12px; text-align: center;">{totales['pendiente']}</td>
+                    <td style="padding: 12px; text-align: center; background-color: {alcance_total_color}40; color: {alcance_total_color}; border-radius: 4px;">{totales['alcance']}%</td>
+                </tr>
+            </tbody>
+            </table>
+            </div>'''
+            
+            return html
         
-        st.markdown(html_comparativa, unsafe_allow_html=True)
+        # Generar HTML para ambos equipos
+        html_adrian = crear_tabla_html_equipo(datos_adrian_completo, "ADRIAN", "#667eea", "#667eea")
+        html_yazmin = crear_tabla_html_equipo(datos_yazmin_completo, "YAZMIN", "#f5576c", "#f5576c")
+        
+        # Mostrar tablas en dos columnas
+        col_adrian, col_yazmin = st.columns(2)
+        
+        with col_adrian:
+            st.markdown('<h4 style="text-align: center; color: #667eea; margin-bottom: 10px;">👨‍💼 EQUIPO ADRIAN</h4>', unsafe_allow_html=True)
+            st.markdown(html_adrian, unsafe_allow_html=True)
+        
+        with col_yazmin:
+            st.markdown('<h4 style="text-align: center; color: #f5576c; margin-bottom: 10px;">👩‍💼 EQUIPO YAZMIN</h4>', unsafe_allow_html=True)
+            st.markdown(html_yazmin, unsafe_allow_html=True)
     else:
         st.warning(f"No hay datos de instaladas para {mes_seleccionado_display}")
 
