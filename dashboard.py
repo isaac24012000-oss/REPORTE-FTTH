@@ -1716,6 +1716,117 @@ with tab1:
                 "Instaladas": st.column_config.NumberColumn(width=150)
             }
         )
+        
+        # ============= COMPARATIVA EQUIPOS ADRIAN vs YAZMIN dentro del tab1 =============
+        st.markdown('<div style="margin-top: 40px;"></div>', unsafe_allow_html=True)
+        st.markdown("#### 📊 Comparativa Equipos: ADRIAN vs YAZMIN")
+        
+        # Definir asesoras por equipo
+        equipo_adrian = ['ZIM_ALEXISGK_VTP', 'ZIM_NERYIU_VTP', 'ZIM_JULIOLD_VTP', 'ZIM_KARINASE_VTP', 
+                         'ZIM_DANIELAAJ_VTP', 'ZIM_ALVAROLC_VTP', 'ZIM_CARLACA_VTP', 'ZIM_MILAGROSMM_VTP']
+        equipo_yazmin = ['ZIM_JESUSSZ_VTP', 'ZIM_INDIRAMM_VTP', 'ZIM_STEVENCM_VTP', 'ZIM_ZOILASM_VTP', 
+                         'ZIM_FLAVIOTB_VTP', 'ZIM_MELANYOA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
+        
+        # Calcular totales por equipo
+        def calcular_totales_equipo_local(lista_asesoras, mes_sel):
+            df_lista = load_lista_metas()
+            df_drive = load_drive_data()
+            
+            if df_lista is None or df_drive is None:
+                return {'meta': 0, 'instalado': 0, 'pendiente': 0, 'cumplimiento': 0}
+            
+            # Total Meta
+            df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
+            total_meta = df_mes_lista[df_mes_lista['Asesor'].isin(lista_asesoras)]['Meta'].sum()
+            
+            # Preparar DRIVE
+            df_drive_clean = df_drive.copy()
+            df_drive_clean['ASESOR'] = df_drive_clean['ASESOR'].astype(str).str.strip()
+            df_drive_clean['ESTADO'] = df_drive_clean['ESTADO'].astype(str).str.strip()
+            
+            # Filtrar por mes
+            df_mes_drive = df_drive_clean[df_drive_clean['MES'] == mes_sel]
+            
+            # Total Instalado y Pendiente
+            total_instalado = 0
+            total_pendiente = 0
+            
+            for asesor in lista_asesoras:
+                df_asesor = df_mes_drive[df_mes_drive['ASESOR'] == asesor]
+                total_instalado += len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
+                total_pendiente += len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
+            
+            # Cumplimiento
+            cumplimiento = round((total_instalado / total_meta * 100)) if total_meta > 0 else 0
+            
+            return {
+                'meta': int(total_meta),
+                'instalado': int(total_instalado),
+                'pendiente': int(total_pendiente),
+                'cumplimiento': int(cumplimiento)
+            }
+        
+        # Calcular datos de ambos equipos
+        datos_adrian = calcular_totales_equipo_local(equipo_adrian, mes_nombre_analisis)
+        datos_yazmin = calcular_totales_equipo_local(equipo_yazmin, mes_nombre_analisis)
+        
+        # Crear tabla comparativa HTML
+        html_comparativa = '''<div style="display: flex; gap: 30px; margin: 20px 0;">
+<div style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 20px; color: white;">
+    <h3 style="text-align: center; margin: 0 0 20px 0; font-size: 24px;">👨‍💼 EQUIPO ADRIAN</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
+            <td style="padding: 10px; font-weight: 600; width: 50%;">META:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right;">{}</td>
+        </tr>
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
+            <td style="padding: 10px; font-weight: 600;">INSTALADO:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #10b981;">{}</td>
+        </tr>
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
+            <td style="padding: 10px; font-weight: 600;">PENDIENTE:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #f59e0b;">{}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; font-weight: 600;">CUMPLIMIENTO:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #fbbf24; background: rgba(0,0,0,0.2); border-radius: 5px;">{}%</td>
+        </tr>
+    </table>
+</div>
+
+<div style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; padding: 20px; color: white;">
+    <h3 style="text-align: center; margin: 0 0 20px 0; font-size: 24px;">👩‍💼 EQUIPO YAZMIN</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
+            <td style="padding: 10px; font-weight: 600; width: 50%;">META:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right;">{}</td>
+        </tr>
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
+            <td style="padding: 10px; font-weight: 600;">INSTALADO:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #10b981;">{}</td>
+        </tr>
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
+            <td style="padding: 10px; font-weight: 600;">PENDIENTE:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #f59e0b;">{}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; font-weight: 600;">CUMPLIMIENTO:</td>
+            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #fbbf24; background: rgba(0,0,0,0.2); border-radius: 5px;">{}%</td>
+        </tr>
+    </table>
+</div>
+</div>'''.format(
+            datos_adrian['meta'],
+            datos_adrian['instalado'],
+            datos_adrian['pendiente'],
+            datos_adrian['cumplimiento'],
+            datos_yazmin['meta'],
+            datos_yazmin['instalado'],
+            datos_yazmin['pendiente'],
+            datos_yazmin['cumplimiento']
+        )
+        
+        st.markdown(html_comparativa, unsafe_allow_html=True)
     else:
         st.warning(f"No hay datos de instaladas para {mes_seleccionado_display}")
 
@@ -2019,136 +2130,6 @@ for dato in datos_meses:
 html_resumen += '</tbody></table></div>'
 
 st.markdown(html_resumen, unsafe_allow_html=True)
-
-st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-
-# ============= COMPARATIVA EQUIPOS ADRIAN vs YAZMIN =============
-st.markdown("### 📊 Comparativa Equipos: ADRIAN vs YAZMIN")
-
-# Definir asesoras por equipo
-equipo_adrian = ['ZIM_ALEXISGK_VTP', 'ZIM_NERYIU_VTP', 'ZIM_JULIOLD_VTP', 'ZIM_KARINASE_VTP', 
-                 'ZIM_DANIELAAJ_VTP', 'ZIM_ALVAROLC_VTP', 'ZIM_CARLACA_VTP', 'ZIM_MILAGROSMM_VTP']
-equipo_yazmin = ['ZIM_JESSUSZ_VTP', 'ZIM_INDIRAMM_VTP', 'ZIM_STEVENCM_VTP', 'ZIM_ZOILASM_VTP', 
-                 'ZIM_FLAVIOTB_VTP', 'ZIM_MELANYOA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
-
-# Calcular totales por equipo
-def calcular_totales_equipo(lista_asesoras, mes_sel):
-    df_lista = load_lista_metas()
-    df_drive = load_drive_data()
-    
-    if df_lista is None or df_drive is None:
-        return {'meta': 0, 'instalado': 0, 'pendiente': 0, 'cumplimiento': 0}
-    
-    # Total Meta
-    df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
-    total_meta = df_mes_lista[df_mes_lista['Asesor'].isin(lista_asesoras)]['Meta'].sum()
-    
-    # Total Instalado
-    total_instalado = 0
-    for asesor in lista_asesoras:
-        instalado = count_instaladas_con_regla_asesor(df_drive, asesor, mes_sel)
-        total_instalado += instalado
-    
-    # Total Pendiente
-    total_pendiente = 0
-    for asesor in lista_asesoras:
-        pendiente = get_pendientes_asesor_mes(asesor, mes_sel)
-        total_pendiente += pendiente
-    
-    # Cumplimiento
-    cumplimiento = round((total_instalado / total_meta * 100)) if total_meta > 0 else 0
-    
-    return {
-        'meta': total_meta,
-        'instalado': total_instalado,
-        'pendiente': total_pendiente,
-        'cumplimiento': cumplimiento
-    }
-
-def count_instaladas_con_regla_asesor(df_drive, asesor, mes_nombre):
-    """Cuenta instaladas para un asesor específico"""
-    if df_drive is None or df_drive.empty:
-        return 0
-    
-    df_drive_clean = df_drive.copy()
-    df_drive_clean['ASESOR'] = df_drive_clean['ASESOR'].astype(str).str.strip()
-    df_drive_clean['ESTADO'] = df_drive_clean['ESTADO'].astype(str).str.strip()
-    
-    if 'MES' in df_drive_clean.columns:
-        df_mes = df_drive_clean[df_drive_clean['MES'] == mes_nombre]
-    else:
-        mes_num = {'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
-                   'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12}
-        df_drive_clean['FECHA'] = pd.to_datetime(df_drive_clean['FECHA'], errors='coerce')
-        df_mes = df_drive_clean[df_drive_clean['FECHA'].dt.month == mes_num.get(mes_nombre, 0)]
-    
-    nombres_alternativos = get_nombres_alternativos(asesor)
-    df_asesor = df_mes[df_mes['ASESOR'].isin(nombres_alternativos)]
-    
-    instaladas = len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
-    return instaladas
-
-# Calcular datos de ambos equipos
-datos_adrian = calcular_totales_equipo(equipo_adrian, mes_seleccionado_display)
-datos_yazmin = calcular_totales_equipo(equipo_yazmin, mes_seleccionado_display)
-
-# Crear tabla comparativa HTML
-html_comparativa = '''<div style="display: flex; gap: 30px; margin: 20px 0;">
-<div style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 20px; color: white;">
-    <h3 style="text-align: center; margin: 0 0 20px 0; font-size: 24px;">👨‍💼 EQUIPO ADRIAN</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600; width: 50%;">META:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">INSTALADO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #10b981;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">PENDIENTE:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #f59e0b;">{}</td>
-        </tr>
-        <tr>
-            <td style="padding: 10px; font-weight: 600;">CUMPLIMIENTO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #fbbf24; background: rgba(0,0,0,0.2); border-radius: 5px;">{}%</td>
-        </tr>
-    </table>
-</div>
-
-<div style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; padding: 20px; color: white;">
-    <h3 style="text-align: center; margin: 0 0 20px 0; font-size: 24px;">👩‍💼 EQUIPO YAZMIN</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600; width: 50%;">META:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">INSTALADO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #10b981;">{}</td>
-        </tr>
-        <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-            <td style="padding: 10px; font-weight: 600;">PENDIENTE:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #f59e0b;">{}</td>
-        </tr>
-        <tr>
-            <td style="padding: 10px; font-weight: 600;">CUMPLIMIENTO:</td>
-            <td style="padding: 10px; font-size: 24px; font-weight: 700; text-align: right; color: #fbbf24; background: rgba(0,0,0,0.2); border-radius: 5px;">{}%</td>
-        </tr>
-    </table>
-</div>
-</div>'''.format(
-    datos_adrian['meta'],
-    datos_adrian['instalado'],
-    datos_adrian['pendiente'],
-    datos_adrian['cumplimiento'],
-    datos_yazmin['meta'],
-    datos_yazmin['instalado'],
-    datos_yazmin['pendiente'],
-    datos_yazmin['cumplimiento']
-)
-
-st.markdown(html_comparativa, unsafe_allow_html=True)
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
