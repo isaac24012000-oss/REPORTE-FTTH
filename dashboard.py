@@ -1831,8 +1831,11 @@ if mes == mes_actual:
     df_detail['Pendientes'] = pendientes_list
 
 # Separar en Full Time (meta >= 55) y Part Time (meta < 55)
-df_fulltime = df_detail[df_detail['Meta'] >= 55].copy()
-df_parttime = df_detail[df_detail['Meta'] < 55].copy()
+# Excepción: CARLACA, ISABEL y LAURA son FULL TIME aunque tengan meta 45
+asesoras_fulltime_especial = ['ZIM_CARLACA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
+condicion_fulltime = (df_detail['Meta'] >= 55) | (df_detail['Asesor'].isin(asesoras_fulltime_especial))
+df_fulltime = df_detail[condicion_fulltime].copy()
+df_parttime = df_detail[~condicion_fulltime].copy()
 
 # Ordenar por el criterio seleccionado
 if criterio_orden == "Conversión (Mayor a Menor)":
