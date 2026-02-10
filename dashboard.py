@@ -1776,8 +1776,15 @@ with tab1:
                 total_instalado += instalado
                 total_pendiente += pendiente
             
+            # Ordenar datos por alcance de mayor a menor
+            datos_tabla_ordenado = sorted(datos_tabla, key=lambda x: x['alcance'], reverse=True)
+            
+            # Actualizar posiciones después del ordenamiento
+            for idx, item in enumerate(datos_tabla_ordenado, 1):
+                item['pos'] = idx
+            
             return {
-                'datos': datos_tabla,
+                'datos': datos_tabla_ordenado,
                 'totales': {
                     'meta': int(total_meta),
                     'instalado': int(total_instalado),
@@ -1795,16 +1802,16 @@ with tab1:
             if datos_equipo is None:
                 return ""
             
-            html = f'''<div style="margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+            html = f'''<div style="margin: 20px 0; background: white; border-radius: 8px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; min-width: 100%;">
             <thead>
                 <tr style="background: {color_header}; color: white;">
-                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">Nº ASESOR</th>
-                    <th style="padding: 12px; text-align: left; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">ASESOR</th>
-                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">OBJETIVO</th>
-                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">INSTALADO</th>
-                    <th style="padding: 12px; text-align: center; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2);">PENDIENTE</th>
-                    <th style="padding: 12px; text-align: center; font-weight: 700;">% ALCANCE</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">Nº ASESOR</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 170px;">ASESOR</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">OBJETIVO</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">INSTALADO</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">PENDIENTE</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">% ALCANCE</th>
                 </tr>
             </thead>
             <tbody>
@@ -1816,23 +1823,23 @@ with tab1:
                 alcance_color = '#10b981' if item['alcance'] >= 70 else '#f59e0b' if item['alcance'] >= 50 else '#ef4444'
                 
                 html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
-                    <td style="padding: 12px; text-align: center; font-weight: 600; color: {color_accent};">#{item['pos']}</td>
-                    <td style="padding: 12px; text-align: left; font-weight: 500;">{item['asesor']}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: 600;">{item['meta']}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: 600; color: #10b981;">{item['instalado']}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: 600; color: #f59e0b;">{item['pendiente']}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: 600; background-color: {alcance_color}22; color: {alcance_color}; border-radius: 4px;">{item['alcance']}%</td>
+                    <td style="padding: 10px 12px; text-align: center; font-weight: 600; font-size: 11px; color: {color_accent};">#{item['pos']}</td>
+                    <td style="padding: 10px 12px; text-align: left; font-weight: 500; font-size: 11px;">{item['asesor']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-weight: 600; font-size: 11px;">{item['meta']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-weight: 600; font-size: 11px; color: #10b981;">{item['instalado']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-weight: 600; font-size: 11px; color: #f59e0b;">{item['pendiente']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-weight: 600; font-size: 11px; background-color: {alcance_color}22; color: {alcance_color}; border-radius: 4px;">{item['alcance']}%</td>
                 </tr>'''
             
             # Agregar fila de totales
             totales = datos_equipo['totales']
             alcance_total_color = '#10b981' if totales['alcance'] >= 70 else '#f59e0b' if totales['alcance'] >= 50 else '#ef4444'
             html += f'''<tr style="background: {color_header}; color: white; font-weight: 700;">
-                    <td colspan="2" style="padding: 12px; text-align: center;">TOTALES</td>
-                    <td style="padding: 12px; text-align: center;">{totales['meta']}</td>
-                    <td style="padding: 12px; text-align: center;">{totales['instalado']}</td>
-                    <td style="padding: 12px; text-align: center;">{totales['pendiente']}</td>
-                    <td style="padding: 12px; text-align: center; background-color: {alcance_total_color}40; color: {alcance_total_color}; border-radius: 4px;">{totales['alcance']}%</td>
+                    <td colspan="2" style="padding: 10px 12px; text-align: center; font-size: 12px; color: white;">{totales['meta']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-size: 12px; color: white;">{totales['meta']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-size: 12px; color: white;">{totales['instalado']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-size: 12px; color: white;">{totales['pendiente']}</td>
+                    <td style="padding: 10px 12px; text-align: center; font-size: 12px; color: white; background-color: {alcance_total_color}40; border-radius: 4px;">{totales['alcance']}%</td>
                 </tr>
             </tbody>
             </table>
