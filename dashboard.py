@@ -1974,14 +1974,6 @@ with tab2:
         )
         
         st.plotly_chart(fig_comparativo, use_container_width=True, config={'displayModeBar': False})
-        
-        # Mostrar tabla de comparativo
-        st.markdown("#### Tabla Comparativa Acumulativa por Día")
-        st.dataframe(
-            df_comparativo,
-            use_container_width=True,
-            column_config={col: st.column_config.NumberColumn(width=100) for col in df_comparativo.columns}
-        )
     else:
         st.warning("No hay datos suficientes para el comparativo de meses")
 
