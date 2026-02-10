@@ -589,6 +589,55 @@ def get_comparativo_semanas_multiples_meses():
     
     return df_comparativo
 
+def get_comparativo_acumulativo_multiples_meses():
+    """Obtiene un comparativo ACUMULATIVO de instaladas para todos los meses disponibles.
+    Retorna un DataFrame con día y cantidad acumulada por cada mes
+    Filtra por fecha actual para no mostrar registros futuros"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return pd.DataFrame()
+    
+    df_temp = df_drive.copy()
+    df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    
+    # FILTRO POR FECHA ACTUAL - no mostrar fechas futuras
+    fecha_actual = pd.Timestamp.today()
+    df_temp = df_temp[df_temp['FECHA'] <= fecha_actual]
+    
+    # Filtrar solo instaladas
+    df_instaladas = df_temp[df_temp['ESTADO'] == 'INSTALADO'].copy()
+    
+    if df_instaladas.empty:
+        return pd.DataFrame()
+    
+    # Obtener columna MES si existe, sino calcularla
+    if 'MES' not in df_instaladas.columns:
+        mes_nombres = {
+            1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+            5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+            9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+        }
+        df_instaladas['MES'] = df_instaladas['FECHA'].dt.month.map(mes_nombres)
+    
+    # Extraer día del mes
+    df_instaladas['DIA'] = df_instaladas['FECHA'].dt.day
+    
+    # Agrupar por mes y día
+    df_pivot = df_instaladas.groupby(['MES', 'DIA']).size().reset_index(name='INSTALADAS')
+    
+    # Crear tabla pivote (meses como columnas, días como filas)
+    df_comparativo = df_pivot.pivot(index='DIA', columns='MES', values='INSTALADAS').fillna(0).astype(int)
+    
+    # Ordenar por día
+    df_comparativo = df_comparativo.sort_index()
+    
+    # Calcular acumulados para cada mes
+    df_acumulativo = df_comparativo.cumsum()
+    
+    return df_acumulativo
+
 @st.cache_data(ttl=3600)
 def get_nombres_alternativos(asesor):
     """Obtiene múltiples variantes del nombre del asesor para búsqueda flexible"""
@@ -1864,11 +1913,11 @@ with tab1:
     else:
         st.warning(f"No hay datos de instaladas para {mes_seleccionado_display}")
 
-# TAB 2: Comparativo de días entre meses
+# TAB 2: Comparativo acumulativo entre meses
 with tab2:
-    st.markdown("#### Comparativa de Instaladas por Día (Todos los Meses)")
+    st.markdown("#### 📈 Comparativa Acumulativa de Instaladas (Todos los Meses)")
     
-    df_comparativo = get_comparativo_semanas_multiples_meses()
+    df_comparativo = get_comparativo_acumulativo_multiples_meses()
     
     if not df_comparativo.empty:
         # Crear gráfico de líneas para comparar meses
@@ -1883,12 +1932,12 @@ with tab2:
                 name=mes_col,
                 line=dict(width=2.5),
                 marker=dict(size=6),
-                hovertemplate='<b>Día %{x}</b><br><b>' + mes_col + ':</b> %{y}<extra></extra>'
+                hovertemplate='<b>Día %{x}</b><br><b>' + mes_col + ':</b> %{y} acumuladas<extra></extra>'
             ))
         
         fig_comparativo.update_layout(
             title=dict(
-                text="Comparativa de Instaladas por Día (Todos los Meses)",
+                text="Comparativa Acumulativa de Instaladas por Día (Todos los Meses)",
                 font=dict(size=16, color='#1e293b', family='Arial'),
                 x=0.5,
                 xanchor='center'
@@ -1896,7 +1945,7 @@ with tab2:
             height=550,
             margin=dict(l=60, r=60, t=80, b=80),
             xaxis_title="Día del Mes",
-            yaxis_title="Cantidad de Instaladas",
+            yaxis_title="Total Acumulado de Instaladas",
             xaxis=dict(
                 tickfont=dict(size=11, color='#64748b'),
                 tickmode='linear',
@@ -1927,7 +1976,7 @@ with tab2:
         st.plotly_chart(fig_comparativo, use_container_width=True, config={'displayModeBar': False})
         
         # Mostrar tabla de comparativo
-        st.markdown("#### Tabla Comparativa por Día")
+        st.markdown("#### Tabla Comparativa Acumulativa por Día")
         st.dataframe(
             df_comparativo,
             use_container_width=True,
