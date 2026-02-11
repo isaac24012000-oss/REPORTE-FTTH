@@ -687,6 +687,54 @@ def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
     pendientes = len(df_mes_asesor[df_mes_asesor['ESTADO'] == 'PENDIENTE'])
     return pendientes
 
+def get_leads_asesor_mes(asesor, mes_seleccionado="Enero"):
+    """Obtiene el total de leads asignados a un asesor en un mes de MANTRA"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Limpiar espacios en los nombres de asesor
+    df_mantra['Agente'] = df_mantra['Agente'].astype(str).str.strip()
+    asesor = asesor.strip()
+    
+    # Obtener nombres alternativos
+    nombres_alternativos = get_nombres_alternativos(asesor)
+    
+    # Obtener datos del asesor en MANTRA para el mes
+    df_mes_asesor = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'].isin(nombres_alternativos))]
+    
+    # Total de leads (registros)
+    total_leads = len(df_mes_asesor)
+    return total_leads
+
+def get_con_cobertura_asesor_mes(asesor, mes_seleccionado="Enero"):
+    """Obtiene la cantidad de leads con cobertura para un asesor en un mes"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return 0
+    
+    # Limpiar espacios en los nombres de asesor
+    df_mantra['Agente'] = df_mantra['Agente'].astype(str).str.strip()
+    asesor = asesor.strip()
+    
+    # Obtener nombres alternativos
+    nombres_alternativos = get_nombres_alternativos(asesor)
+    
+    # Obtener datos del asesor en MANTRA para el mes
+    df_mes_asesor = df_mantra[(df_mantra['Mes'] == mes_seleccionado) & (df_mantra['Agente'].isin(nombres_alternativos))]
+    
+    if df_mes_asesor.empty:
+        return 0
+    
+    # Limpiar espacios en NIVEL 2
+    df_mes_asesor['NIVEL 2'] = df_mes_asesor['NIVEL 2'].astype(str).str.strip()
+    
+    # Contar "Con Cobertura"
+    con_cobertura = len(df_mes_asesor[df_mes_asesor['NIVEL 2'] == 'Con Cobertura'])
+    return con_cobertura
+
 def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     """Calcula la conversión por asesor: Contrato OK / Con Cobertura (de MANTRA)
     Usando datos de MANTRA únicamente"""
@@ -2007,6 +2055,17 @@ if mes == mes_actual:
         pendientes_list.append(pendientes)
     df_detail['Pendientes'] = pendientes_list
 
+# Agregar columnas de Leads y Con Cobertura
+leads_list = []
+con_cobertura_list = []
+for asesor in df_detail['Asesor']:
+    leads = get_leads_asesor_mes(asesor, mes)
+    con_cobertura = get_con_cobertura_asesor_mes(asesor, mes)
+    leads_list.append(leads)
+    con_cobertura_list.append(con_cobertura)
+df_detail['Leads'] = leads_list
+df_detail['Con Cobertura'] = con_cobertura_list
+
 # Separar en Full Time (meta >= 55) y Part Time (meta < 55)
 # Excepción: CARLACA, ISABEL y LAURA son FULL TIME aunque tengan meta 45
 asesoras_fulltime_especial = ['ZIM_CARLACA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
@@ -2033,12 +2092,14 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
     mostrar_pendientes = mes == mes_actual
     
     if mostrar_pendientes:
-        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 20%;">Asesor</th><th style="width: 7%;">Meta</th><th style="width: 9%;">Inst</th><th style="width: 9%;">Canc</th><th style="width: 9%;">Pend</th><th style="width: 10%;">Cumpl%</th><th style="width: 11%;">Conv%</th><th style="width: 15%;">Estado</th></tr></thead><tbody>'
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 4%;">Pos</th><th style="width: 18%;">Asesor</th><th style="width: 6%;">Leads</th><th style="width: 8%;">Cob</th><th style="width: 6%;">Meta</th><th style="width: 7%;">Inst</th><th style="width: 7%;">Canc</th><th style="width: 7%;">Pend</th><th style="width: 8%;">Cumpl%</th><th style="width: 9%;">Conv%</th><th style="width: 12%;">Estado</th></tr></thead><tbody>'
     else:
-        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 6%;">Pos</th><th style="width: 25%;">Asesor</th><th style="width: 8%;">Meta</th><th style="width: 10%;">Instaladas</th><th style="width: 10%;">Canceladas</th><th style="width: 12%;">Cumpl%</th><th style="width: 12%;">Conv.Vent%</th><th style="width: 17%;">Estado</th></tr></thead><tbody>'
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 22%;">Asesor</th><th style="width: 7%;">Leads</th><th style="width: 8%;">Cob</th><th style="width: 7%;">Meta</th><th style="width: 8%;">Inst</th><th style="width: 8%;">Canc</th><th style="width: 9%;">Cumpl%</th><th style="width: 10%;">Conv%</th><th style="width: 10%;">Estado</th></tr></thead><tbody>'
 
     for idx, (_, row) in enumerate(df_tabla.iterrows(), 1):
         asesor = row['Asesor']
+        leads = int(row.get('Leads', 0))
+        con_cobertura = int(row.get('Con Cobertura', 0))
         meta = int(row['Meta'])
         instaladas = int(row['Instaladas'])
         canceladas = int(row['Canceladas'])
@@ -2061,6 +2122,8 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
             html_tabla += f'''<tr style="{fila_bg}">
                 <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
                 <td style="font-weight: 600;">{asesor}</td>
+                <td style="text-align: center; font-weight: 600; color: #0066cc;">{leads}</td>
+                <td style="text-align: center; font-weight: 600; color: #8b5cf6;">{con_cobertura}</td>
                 <td style="text-align: center; font-weight: 600;">{meta}</td>
                 <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
@@ -2073,6 +2136,8 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
             html_tabla += f'''<tr style="{fila_bg}">
                 <td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td>
                 <td style="font-weight: 600;">{asesor}</td>
+                <td style="text-align: center; font-weight: 600; color: #0066cc;">{leads}</td>
+                <td style="text-align: center; font-weight: 600; color: #8b5cf6;">{con_cobertura}</td>
                 <td style="text-align: center; font-weight: 600;">{meta}</td>
                 <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
