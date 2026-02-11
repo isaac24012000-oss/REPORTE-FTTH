@@ -1538,13 +1538,17 @@ else:
     cumpl_val = int(asesor_data['Cumplimiento'])
     efect_val = int(asesor_data['Efectividad'])
     instaladas_asesor = int(asesor_data['Instaladas'])
+    leads_asesor = get_leads_asesor_mes(asesor_seleccionado, mes)
+    con_cobertura_asesor = get_con_cobertura_asesor_mes(asesor_seleccionado, mes)
     
     kpis = [
-        (str(int(asesor_data['Meta'])), "🏆 Meta", col1),
-        (f"{cumpl_val}%", "✅ Cumplimiento", col2),
-        (f"{efect_val}%", "⭐ Conversión de Ventas", col3),
-        (str(instaladas_asesor), "💰 Total Instaladas", col4),
-        ("🟢 Excelente" if cumpl_val >= 70 else "🟡 Bueno" if cumpl_val >= 50 else "🔴 Bajo", "📈 Estado", col5),
+        (str(leads_asesor), "📋 Total Leads", col1),
+        (str(con_cobertura_asesor), "🌐 Con Cobertura", col2),
+        (str(int(asesor_data['Meta'])), "🏆 Meta", col3),
+        (f"{cumpl_val}%", "✅ Cumplimiento", col4),
+        (f"{efect_val}%", "⭐ Conv. Ventas", col5),
+        (str(instaladas_asesor), "💰 Instaladas", col6),
+        ("🟢 Excelente" if cumpl_val >= 70 else "🟡 Bueno" if cumpl_val >= 50 else "🔴 Bajo", "📈 Estado", col7),
     ]
 
 for valor, label, col in kpis:
