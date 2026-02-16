@@ -2301,9 +2301,10 @@ if not df_mantra_mes.empty:
     
     with col4:
         nivel3_unique = sorted(df_temp3['NIVEL 3'].unique())
-        nivel3_filtro = st.selectbox(
+        nivel3_filtro = st.multiselect(
             "Nivel 3",
-            ["Todos"] + list(nivel3_unique),
+            list(nivel3_unique),
+            default=list(nivel3_unique),
             key="nivel3_filtro_casos"
         )
     
@@ -2319,8 +2320,8 @@ if not df_mantra_mes.empty:
     if nivel2_filtro != "Todos":
         df_filtrado = df_filtrado[df_filtrado['NIVEL 2'] == nivel2_filtro]
     
-    if nivel3_filtro != "Todos":
-        df_filtrado = df_filtrado[df_filtrado['NIVEL 3'] == nivel3_filtro]
+    if nivel3_filtro:
+        df_filtrado = df_filtrado[df_filtrado['NIVEL 3'].isin(nivel3_filtro)]
     
     # Mostrar total de casos filtrados
     total_casos_filtrados = len(df_filtrado)
