@@ -465,7 +465,7 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     
     # Conversión simple, sin limpieza excesiva
     df_temp = df_drive.copy()
-    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA DE INST'], errors='coerce')
     
     # Mapeo de meses
     mes_numeros = {
@@ -554,7 +554,7 @@ def get_comparativo_semanas_multiples_meses():
     
     df_temp = df_drive.copy()
     df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
-    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA DE INST'], errors='coerce')
     
     # FILTRO POR FECHA ACTUAL - no mostrar fechas futuras
     fecha_actual = pd.Timestamp.today()
@@ -600,7 +600,7 @@ def get_comparativo_acumulativo_multiples_meses():
     
     df_temp = df_drive.copy()
     df_temp['ESTADO'] = df_temp['ESTADO'].astype(str).str.strip()
-    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
+    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA DE INST'], errors='coerce')
     
     # FILTRO POR FECHA ACTUAL - no mostrar fechas futuras
     fecha_actual = pd.Timestamp.today()
