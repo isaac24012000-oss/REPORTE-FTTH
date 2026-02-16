@@ -781,6 +781,54 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     conversion_pct = round((contrato_ok / con_cobertura * 100)) if con_cobertura > 0 else 0
     return conversion_pct
 
+@st.cache_data(ttl=3600)
+def get_casos_por_agente_nivel(mes_seleccionado="Febrero"):
+    """Obtiene casos por agente y nivel (1, 2, 3) desde MANTRA
+    Retorna un DataFrame con información detallada para análisis"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return pd.DataFrame()
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado].copy()
+    
+    if df_mes.empty:
+        return pd.DataFrame()
+    
+    # Limpiar espacios en blanco
+    df_mes['Agente'] = df_mes['Agente'].astype(str).str.strip()
+    df_mes['NIVEL 1'] = df_mes['NIVEL 1'].astype(str).str.strip()
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
+    
+    # Agrupar por Agente
+    agentes = df_mes['Agente'].unique()
+    
+    datos = []
+    for agente in sorted(agentes):
+        df_agente = df_mes[df_mes['Agente'] == agente]
+        total_casos = len(df_agente)
+        
+        # Contar por NIVEL 1
+        nivel1_counts = df_agente['NIVEL 1'].value_counts().to_dict()
+        
+        # Contar por NIVEL 2
+        nivel2_counts = df_agente['NIVEL 2'].value_counts().to_dict()
+        
+        # Contar por NIVEL 3
+        nivel3_counts = df_agente['NIVEL 3'].value_counts().to_dict()
+        
+        datos.append({
+            'Agente': agente,
+            'Total Casos': total_casos,
+            'NIVEL 1': nivel1_counts,
+            'NIVEL 2': nivel2_counts,
+            'NIVEL 3': nivel3_counts
+        })
+    
+    return pd.DataFrame(datos)
+
 def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
 
     """
@@ -2174,6 +2222,148 @@ df_todos = pd.concat([df_fulltime, df_parttime], ignore_index=True).sort_values(
 if not df_todos.empty:
     html_todos = generar_tabla_detalle(df_todos, "Todos")
     st.markdown(html_todos, unsafe_allow_html=True)
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+# ============= NUEVA SECCIÓN: ANÁLISIS DE CASOS POR NIVEL =============
+st.markdown("### 📋 Análisis de Casos por Nivel (MANTRA)")
+
+# Obtener datos de casos por agente y nivel
+df_casos = get_casos_por_agente_nivel(mes)
+
+if not df_casos.empty:
+    # Filtros
+    col_filtro1, col_filtro2 = st.columns(2)
+    
+    with col_filtro1:
+        agentes_unique = sorted(df_casos['Agente'].unique())
+        agente_seleccionado_casos = st.selectbox(
+            "Filtrar por Agente:",
+            ["Todos"] + list(agentes_unique),
+            key="agente_casos"
+        )
+    
+    # Filtrar datos según selección
+    if agente_seleccionado_casos == "Todos":
+        df_mostrar = df_casos.copy()
+    else:
+        df_mostrar = df_casos[df_casos['Agente'] == agente_seleccionado_casos]
+    
+    # Crear tabla visual con información de niveles
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        st.markdown("#### Detalle de Casos por Nivel")
+        
+        # Crear tabla HTML personalizada
+        html_casos = '''
+        <div class="meta-tabla">
+        <table style="width: 100%;">
+        <thead>
+        <tr style="background-color: #0066cc; color: white;">
+            <th style="padding: 12px; text-align: left;">Agente</th>
+            <th style="padding: 12px; text-align: center;">Total Casos</th>
+            <th style="padding: 12px; text-align: center;">NIVEL 1</th>
+            <th style="padding: 12px; text-align: center;">NIVEL 2</th>
+            <th style="padding: 12px; text-align: center;">NIVEL 3</th>
+        </tr>
+        </thead>
+        <tbody>
+        '''
+        
+        for idx, row in df_mostrar.iterrows():
+            agente = row['Agente']
+            total = row['Total Casos']
+            
+            # Procesar NIVEL 1
+            nivel1 = row['NIVEL 1']
+            nivel1_str = ', '.join([f"{k}: {v}" for k, v in nivel1.items()]) if isinstance(nivel1, dict) else str(nivel1)
+            
+            # Procesar NIVEL 2
+            nivel2 = row['NIVEL 2']
+            nivel2_str = ', '.join([f"{k}: {v}" for k, v in nivel2.items()]) if isinstance(nivel2, dict) else str(nivel2)
+            
+            # Procesar NIVEL 3
+            nivel3 = row['NIVEL 3']
+            nivel3_str = ', '.join([f"{k}: {v}" for k, v in nivel3.items()]) if isinstance(nivel3, dict) else str(nivel3)
+            
+            html_casos += f'''
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; font-weight: 600; color: #0066cc;">{agente}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b;">{total}</td>
+                <td style="padding: 12px; font-size: 12px; text-align: center;">
+                    <div style="background: #f0f9ff; padding: 8px; border-radius: 4px;">{nivel1_str}</div>
+                </td>
+                <td style="padding: 12px; font-size: 12px; text-align: center;">
+                    <div style="background: #f5f3ff; padding: 8px; border-radius: 4px;">{nivel2_str}</div>
+                </td>
+                <td style="padding: 12px; font-size: 12px; text-align: center;">
+                    <div style="background: #fef3c7; padding: 8px; border-radius: 4px;">{nivel3_str}</div>
+                </td>
+            </tr>
+            '''
+        
+        html_casos += '''
+        </tbody>
+        </table>
+        </div>
+        '''
+        
+        st.markdown(html_casos, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("#### Descargar")
+        
+        # Preparar datos para exportar
+        def preparar_datos_export(df):
+            df_export = df.copy()
+            df_export['NIVEL 1'] = df_export['NIVEL 1'].apply(lambda x: str(x) if not isinstance(x, dict) else ', '.join([f"{k}: {v}" for k, v in x.items()]))
+            df_export['NIVEL 2'] = df_export['NIVEL 2'].apply(lambda x: str(x) if not isinstance(x, dict) else ', '.join([f"{k}: {v}" for k, v in x.items()]))
+            df_export['NIVEL 3'] = df_export['NIVEL 3'].apply(lambda x: str(x) if not isinstance(x, dict) else ', '.join([f"{k}: {v}" for k, v in x.items()]))
+            return df_export
+        
+        df_export = preparar_datos_export(df_mostrar)
+        
+        # Crear archivo Excel
+        from io import BytesIO
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df_export.to_excel(writer, sheet_name='Casos por Nivel', index=False)
+            
+            workbook = writer.book
+            worksheet = writer.sheets['Casos por Nivel']
+            
+            # Estilos
+            header_fill = PatternFill(start_color="0066cc", end_color="0066cc", fill_type="solid")
+            header_font = Font(color="FFFFFF", bold=True, size=11)
+            
+            # Aplicar estilos al encabezado
+            for cell in worksheet[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            
+            # Ajustar anchos de columna
+            worksheet.column_dimensions['A'].width = 20
+            worksheet.column_dimensions['B'].width = 15
+            worksheet.column_dimensions['C'].width = 30
+            worksheet.column_dimensions['D'].width = 30
+            worksheet.column_dimensions['E'].width = 30
+        
+        buffer.seek(0)
+        
+        st.download_button(
+            label="📥 Descargar Excel",
+            data=buffer,
+            file_name=f"Casos_por_Nivel_{mes}_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+else:
+    st.warning(f"No hay datos de casos disponibles para {mes}")
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
