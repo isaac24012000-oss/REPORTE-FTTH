@@ -536,8 +536,8 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     
     df_dias['DIA_ETIQUETA'] = df_dias['DIA'].astype(str) + ' ' + mes_str
     
-    # Retornar ordenado
-    result = df_dias[['DIA_ETIQUETA', 'INSTALADAS']].sort_values('DIA_ETIQUETA')
+    # Retornar ordenado por DIA (número), no por DIA_ETIQUETA (string)
+    result = df_dias.sort_values('DIA')[['DIA_ETIQUETA', 'INSTALADAS']]
     result.columns = ['DIA', 'INSTALADAS']
     
     return result
