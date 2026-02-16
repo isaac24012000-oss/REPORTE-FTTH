@@ -2261,11 +2261,11 @@ if not df_casos.empty:
         <table style="width: 100%;">
         <thead>
         <tr style="background-color: #0066cc; color: white;">
-            <th style="padding: 12px; text-align: left;">Agente</th>
-            <th style="padding: 12px; text-align: center;">Total Casos</th>
-            <th style="padding: 12px; text-align: center;">NIVEL 1</th>
-            <th style="padding: 12px; text-align: center;">NIVEL 2</th>
-            <th style="padding: 12px; text-align: center;">NIVEL 3</th>
+            <th style="padding: 12px; text-align: left; width: 20%;">Agente</th>
+            <th style="padding: 12px; text-align: center; width: 12%;">Total Casos</th>
+            <th style="padding: 12px; text-align: center; width: 23%;">NIVEL 1</th>
+            <th style="padding: 12px; text-align: center; width: 23%;">NIVEL 2</th>
+            <th style="padding: 12px; text-align: center; width: 22%;">NIVEL 3</th>
         </tr>
         </thead>
         <tbody>
@@ -2275,30 +2275,42 @@ if not df_casos.empty:
             agente = row['Agente']
             total = row['Total Casos']
             
-            # Procesar NIVEL 1
+            # Procesar NIVEL 1 - con saltos de línea
             nivel1 = row['NIVEL 1']
-            nivel1_str = ', '.join([f"{k}: {v}" for k, v in nivel1.items()]) if isinstance(nivel1, dict) else str(nivel1)
+            if isinstance(nivel1, dict):
+                nivel1_items = [f"<b>{k}:</b> {v}" for k, v in sorted(nivel1.items(), key=lambda x: -x[1])]
+                nivel1_str = '<br>'.join(nivel1_items)
+            else:
+                nivel1_str = str(nivel1)
             
-            # Procesar NIVEL 2
+            # Procesar NIVEL 2 - con saltos de línea
             nivel2 = row['NIVEL 2']
-            nivel2_str = ', '.join([f"{k}: {v}" for k, v in nivel2.items()]) if isinstance(nivel2, dict) else str(nivel2)
+            if isinstance(nivel2, dict):
+                nivel2_items = [f"<b>{k}:</b> {v}" for k, v in sorted(nivel2.items(), key=lambda x: -x[1])]
+                nivel2_str = '<br>'.join(nivel2_items)
+            else:
+                nivel2_str = str(nivel2)
             
-            # Procesar NIVEL 3
+            # Procesar NIVEL 3 - con saltos de línea
             nivel3 = row['NIVEL 3']
-            nivel3_str = ', '.join([f"{k}: {v}" for k, v in nivel3.items()]) if isinstance(nivel3, dict) else str(nivel3)
+            if isinstance(nivel3, dict):
+                nivel3_items = [f"<b>{k}:</b> {v}" for k, v in sorted(nivel3.items(), key=lambda x: -x[1])]
+                nivel3_str = '<br>'.join(nivel3_items)
+            else:
+                nivel3_str = str(nivel3)
             
             html_casos += f'''
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px; font-weight: 600; color: #0066cc;">{agente}</td>
-                <td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b;">{total}</td>
-                <td style="padding: 12px; font-size: 12px; text-align: center;">
-                    <div style="background: #f0f9ff; padding: 8px; border-radius: 4px;">{nivel1_str}</div>
+            <tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+                <td style="padding: 12px; font-weight: 700; color: #0066cc; font-size: 11px;">{agente}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b; font-size: 14px;">{total}</td>
+                <td style="padding: 10px; font-size: 11px; text-align: left;">
+                    <div style="background: #f0f9ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel1_str}</div>
                 </td>
-                <td style="padding: 12px; font-size: 12px; text-align: center;">
-                    <div style="background: #f5f3ff; padding: 8px; border-radius: 4px;">{nivel2_str}</div>
+                <td style="padding: 10px; font-size: 11px; text-align: left;">
+                    <div style="background: #f5f3ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel2_str}</div>
                 </td>
-                <td style="padding: 12px; font-size: 12px; text-align: center;">
-                    <div style="background: #fef3c7; padding: 8px; border-radius: 4px;">{nivel3_str}</div>
+                <td style="padding: 10px; font-size: 11px; text-align: left;">
+                    <div style="background: #fef3c7; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel3_str}</div>
                 </td>
             </tr>
             '''
