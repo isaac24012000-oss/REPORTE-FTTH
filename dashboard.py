@@ -2384,10 +2384,15 @@ if not df_mantra_mes.empty:
             
             buffer.seek(0)
             
+            # Preparar nombre del archivo con agente y fecha
+            nombre_asesor = agente_filtro if agente_filtro != "Todos" else "Todos"
+            fecha_hoy = datetime.now().strftime('%d_%m_%Y')
+            nombre_archivo = f"Casos_Filtrados_{nombre_asesor}_{mes}_{fecha_hoy}.xlsx"
+            
             st.download_button(
                 label="📥 Descargar Excel",
                 data=buffer,
-                file_name=f"Casos_Filtrados_{mes}_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+                file_name=nombre_archivo,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
