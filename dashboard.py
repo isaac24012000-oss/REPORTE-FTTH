@@ -2249,44 +2249,32 @@ if not df_casos.empty:
     else:
         df_mostrar = df_casos[df_casos['Agente'] == agente_seleccionado_casos]
     
-    # Crear tabla visual con información de niveles
+    # Crear tabla visual simplificada con resumen de cantidades
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        st.markdown("#### Detalle de Casos por Nivel")
+        st.markdown("#### Resumen de Casos por Nivel")
         
-        # Crear tabla HTML personalizada
-        html_casos = '<div class="meta-tabla"><table style="width: 100%;"><thead><tr style="background-color: #0066cc; color: white;"><th style="padding: 12px; text-align: left; width: 20%;">Agente</th><th style="padding: 12px; text-align: center; width: 12%;">Total Casos</th><th style="padding: 12px; text-align: center; width: 23%;">NIVEL 1</th><th style="padding: 12px; text-align: center; width: 23%;">NIVEL 2</th><th style="padding: 12px; text-align: center; width: 22%;">NIVEL 3</th></tr></thead><tbody>'
+        # Crear tabla HTML simplificada con solo cantidades
+        html_casos = '<div class="meta-tabla"><table style="width: 100%;"><thead><tr style="background-color: #0066cc; color: white;"><th style="padding: 12px; text-align: left; width: 25%;">Agente</th><th style="padding: 12px; text-align: center; width: 15%;">Total Casos</th><th style="padding: 12px; text-align: center; width: 20%;">NIVEL 1</th><th style="padding: 12px; text-align: center; width: 20%;">NIVEL 2</th><th style="padding: 12px; text-align: center; width: 20%;">NIVEL 3</th></tr></thead><tbody>'
         
         for idx, row in df_mostrar.iterrows():
             agente = row['Agente']
             total = row['Total Casos']
             
-            # Procesar NIVEL 1 - con saltos de línea
+            # Contar elementos en NIVEL 1
             nivel1 = row['NIVEL 1']
-            if isinstance(nivel1, dict):
-                nivel1_items = [f"<b>{k}:</b> {v}" for k, v in sorted(nivel1.items(), key=lambda x: -x[1])]
-                nivel1_str = '<br>'.join(nivel1_items)
-            else:
-                nivel1_str = str(nivel1)
+            nivel1_count = sum(nivel1.values()) if isinstance(nivel1, dict) else 0
             
-            # Procesar NIVEL 2 - con saltos de línea
+            # Contar elementos en NIVEL 2
             nivel2 = row['NIVEL 2']
-            if isinstance(nivel2, dict):
-                nivel2_items = [f"<b>{k}:</b> {v}" for k, v in sorted(nivel2.items(), key=lambda x: -x[1])]
-                nivel2_str = '<br>'.join(nivel2_items)
-            else:
-                nivel2_str = str(nivel2)
+            nivel2_count = sum(nivel2.values()) if isinstance(nivel2, dict) else 0
             
-            # Procesar NIVEL 3 - con saltos de línea
+            # Contar elementos en NIVEL 3
             nivel3 = row['NIVEL 3']
-            if isinstance(nivel3, dict):
-                nivel3_items = [f"<b>{k}:</b> {v}" for k, v in sorted(nivel3.items(), key=lambda x: -x[1])]
-                nivel3_str = '<br>'.join(nivel3_items)
-            else:
-                nivel3_str = str(nivel3)
+            nivel3_count = sum(nivel3.values()) if isinstance(nivel3, dict) else 0
             
-            html_casos += f'<tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top;"><td style="padding: 12px; font-weight: 700; color: #0066cc; font-size: 11px;">{agente}</td><td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b; font-size: 14px;">{total}</td><td style="padding: 10px; font-size: 11px; text-align: left;"><div style="background: #f0f9ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel1_str}</div></td><td style="padding: 10px; font-size: 11px; text-align: left;"><div style="background: #f5f3ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel2_str}</div></td><td style="padding: 10px; font-size: 11px; text-align: left;"><div style="background: #fef3c7; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel3_str}</div></td></tr>'
+            html_casos += f'<tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 12px; font-weight: 700; color: #0066cc; font-size: 12px;">{agente}</td><td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b; font-size: 13px;">{total}</td><td style="padding: 12px; text-align: center; background: #f0f9ff; font-weight: 600; color: #0066cc;">{nivel1_count}</td><td style="padding: 12px; text-align: center; background: #f5f3ff; font-weight: 600; color: #7c3aed;">{nivel2_count}</td><td style="padding: 12px; text-align: center; background: #fef3c7; font-weight: 600; color: #d97706;">{nivel3_count}</td></tr>'
         
         html_casos += '</tbody></table></div>'
         
@@ -2295,12 +2283,13 @@ if not df_casos.empty:
     with col2:
         st.markdown("#### Descargar")
         
-        # Preparar datos para exportar
+        # Preparar datos para exportar con detalle completo
         def preparar_datos_export(df):
             df_export = df.copy()
-            df_export['NIVEL 1'] = df_export['NIVEL 1'].apply(lambda x: str(x) if not isinstance(x, dict) else ', '.join([f"{k}: {v}" for k, v in x.items()]))
-            df_export['NIVEL 2'] = df_export['NIVEL 2'].apply(lambda x: str(x) if not isinstance(x, dict) else ', '.join([f"{k}: {v}" for k, v in x.items()]))
-            df_export['NIVEL 3'] = df_export['NIVEL 3'].apply(lambda x: str(x) if not isinstance(x, dict) else ', '.join([f"{k}: {v}" for k, v in x.items()]))
+            # Expandir diccionarios a formato detallado con saltos de línea
+            df_export['NIVEL 1'] = df_export['NIVEL 1'].apply(lambda x: str(x) if not isinstance(x, dict) else '\n'.join([f"{k}: {v}" for k, v in sorted(x.items(), key=lambda item: -item[1])]))
+            df_export['NIVEL 2'] = df_export['NIVEL 2'].apply(lambda x: str(x) if not isinstance(x, dict) else '\n'.join([f"{k}: {v}" for k, v in sorted(x.items(), key=lambda item: -item[1])]))
+            df_export['NIVEL 3'] = df_export['NIVEL 3'].apply(lambda x: str(x) if not isinstance(x, dict) else '\n'.join([f"{k}: {v}" for k, v in sorted(x.items(), key=lambda item: -item[1])]))
             return df_export
         
         df_export = preparar_datos_export(df_mostrar)
@@ -2327,12 +2316,19 @@ if not df_casos.empty:
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             
+            # Aplicar estilos a datos y ajustar altura de filas
+            for row in worksheet.iter_rows(min_row=2, max_row=worksheet.max_row):
+                for cell in row:
+                    cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+                # Establecer altura de fila para acomodar contenido
+                row[0].parent.row_dimensions[row[0].row].height = 60
+            
             # Ajustar anchos de columna
-            worksheet.column_dimensions['A'].width = 20
+            worksheet.column_dimensions['A'].width = 22
             worksheet.column_dimensions['B'].width = 15
-            worksheet.column_dimensions['C'].width = 30
-            worksheet.column_dimensions['D'].width = 30
-            worksheet.column_dimensions['E'].width = 30
+            worksheet.column_dimensions['C'].width = 35
+            worksheet.column_dimensions['D'].width = 35
+            worksheet.column_dimensions['E'].width = 35
         
         buffer.seek(0)
         
