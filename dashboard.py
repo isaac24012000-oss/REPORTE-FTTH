@@ -782,6 +782,28 @@ def get_conversion_asesor_mes(asesor, mes_seleccionado="Noviembre"):
     return conversion_pct
 
 @st.cache_data(ttl=3600)
+def get_datos_mantra_mes(mes_seleccionado="Febrero"):
+    """Obtiene datos detallados de MANTRA para un mes específico sin agregación"""
+    df_mantra = load_mantra_data()
+    
+    if df_mantra is None or df_mantra.empty:
+        return pd.DataFrame()
+    
+    # Filtrar por mes
+    df_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado].copy()
+    
+    if df_mes.empty:
+        return pd.DataFrame()
+    
+    # Limpiar espacios en blanco
+    df_mes['Agente'] = df_mes['Agente'].astype(str).str.strip()
+    df_mes['NIVEL 1'] = df_mes['NIVEL 1'].astype(str).str.strip()
+    df_mes['NIVEL 2'] = df_mes['NIVEL 2'].astype(str).str.strip()
+    df_mes['NIVEL 3'] = df_mes['NIVEL 3'].astype(str).str.strip()
+    
+    return df_mes
+
+@st.cache_data(ttl=3600)
 def get_casos_por_agente_nivel(mes_seleccionado="Febrero"):
     """Obtiene casos por agente y nivel (1, 2, 3) desde MANTRA
     Retorna un DataFrame con información detallada para análisis"""
@@ -2228,117 +2250,149 @@ st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 # ============= NUEVA SECCIÓN: ANÁLISIS DE CASOS POR NIVEL =============
 st.markdown("### 📋 Análisis de Casos por Nivel (MANTRA)")
 
-# Obtener datos de casos por agente y nivel
-df_casos = get_casos_por_agente_nivel(mes)
+# Obtener datos detallados de MANTRA
+df_mantra_mes = get_datos_mantra_mes(mes)
 
-if not df_casos.empty:
-    # Filtros
-    col_filtro1, col_filtro2 = st.columns(2)
-    
-    with col_filtro1:
-        agentes_unique = sorted(df_casos['Agente'].unique())
-        agente_seleccionado_casos = st.selectbox(
-            "Filtrar por Agente:",
-            ["Todos"] + list(agentes_unique),
-            key="agente_casos"
-        )
-    
-    # Filtrar datos según selección
-    if agente_seleccionado_casos == "Todos":
-        df_mostrar = df_casos.copy()
-    else:
-        df_mostrar = df_casos[df_casos['Agente'] == agente_seleccionado_casos]
-    
-    # Crear tabla visual simplificada con resumen de cantidades
-    col1, col2 = st.columns([3, 1])
+if not df_mantra_mes.empty:
+    # Crear filtros múltiples en 4 columnas
+    col1, col2, col3, col4 = st.columns(4, gap="small")
     
     with col1:
-        st.markdown("#### Resumen de Casos por Nivel")
-        
-        # Crear tabla HTML simplificada con solo cantidades
-        html_casos = '<div class="meta-tabla"><table style="width: 100%;"><thead><tr style="background-color: #0066cc; color: white;"><th style="padding: 12px; text-align: left; width: 25%;">Agente</th><th style="padding: 12px; text-align: center; width: 15%;">Total Casos</th><th style="padding: 12px; text-align: center; width: 20%;">NIVEL 1</th><th style="padding: 12px; text-align: center; width: 20%;">NIVEL 2</th><th style="padding: 12px; text-align: center; width: 20%;">NIVEL 3</th></tr></thead><tbody>'
-        
-        for idx, row in df_mostrar.iterrows():
-            agente = row['Agente']
-            total = row['Total Casos']
-            
-            # Contar elementos en NIVEL 1
-            nivel1 = row['NIVEL 1']
-            nivel1_count = sum(nivel1.values()) if isinstance(nivel1, dict) else 0
-            
-            # Contar elementos en NIVEL 2
-            nivel2 = row['NIVEL 2']
-            nivel2_count = sum(nivel2.values()) if isinstance(nivel2, dict) else 0
-            
-            # Contar elementos en NIVEL 3
-            nivel3 = row['NIVEL 3']
-            nivel3_count = sum(nivel3.values()) if isinstance(nivel3, dict) else 0
-            
-            html_casos += f'<tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 12px; font-weight: 700; color: #0066cc; font-size: 12px;">{agente}</td><td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b; font-size: 13px;">{total}</td><td style="padding: 12px; text-align: center; background: #f0f9ff; font-weight: 600; color: #0066cc;">{nivel1_count}</td><td style="padding: 12px; text-align: center; background: #f5f3ff; font-weight: 600; color: #7c3aed;">{nivel2_count}</td><td style="padding: 12px; text-align: center; background: #fef3c7; font-weight: 600; color: #d97706;">{nivel3_count}</td></tr>'
-        
-        html_casos += '</tbody></table></div>'
-        
-        st.markdown(html_casos, unsafe_allow_html=True)
+        agentes_unique = sorted(df_mantra_mes['Agente'].unique())
+        agente_filtro = st.selectbox(
+            "Agente",
+            ["Todos"] + list(agentes_unique),
+            key="agente_filtro_casos"
+        )
+    
+    # Filtrar por agente para obtener valores únicos de niveles
+    if agente_filtro == "Todos":
+        df_temp = df_mantra_mes.copy()
+    else:
+        df_temp = df_mantra_mes[df_mantra_mes['Agente'] == agente_filtro]
     
     with col2:
-        st.markdown("#### Descargar")
-        
-        # Preparar datos para exportar con detalle completo
-        def preparar_datos_export(df):
-            df_export = df.copy()
-            # Expandir diccionarios a formato detallado con saltos de línea
-            df_export['NIVEL 1'] = df_export['NIVEL 1'].apply(lambda x: str(x) if not isinstance(x, dict) else '\n'.join([f"{k}: {v}" for k, v in sorted(x.items(), key=lambda item: -item[1])]))
-            df_export['NIVEL 2'] = df_export['NIVEL 2'].apply(lambda x: str(x) if not isinstance(x, dict) else '\n'.join([f"{k}: {v}" for k, v in sorted(x.items(), key=lambda item: -item[1])]))
-            df_export['NIVEL 3'] = df_export['NIVEL 3'].apply(lambda x: str(x) if not isinstance(x, dict) else '\n'.join([f"{k}: {v}" for k, v in sorted(x.items(), key=lambda item: -item[1])]))
-            return df_export
-        
-        df_export = preparar_datos_export(df_mostrar)
-        
-        # Crear archivo Excel
-        from io import BytesIO
-        import openpyxl
-        from openpyxl.styles import Font, PatternFill, Alignment
-        
-        buffer = BytesIO()
-        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            df_export.to_excel(writer, sheet_name='Casos por Nivel', index=False)
-            
-            workbook = writer.book
-            worksheet = writer.sheets['Casos por Nivel']
-            
-            # Estilos
-            header_fill = PatternFill(start_color="0066cc", end_color="0066cc", fill_type="solid")
-            header_font = Font(color="FFFFFF", bold=True, size=11)
-            
-            # Aplicar estilos al encabezado
-            for cell in worksheet[1]:
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            
-            # Aplicar estilos a datos y ajustar altura de filas
-            for row in worksheet.iter_rows(min_row=2, max_row=worksheet.max_row):
-                for cell in row:
-                    cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
-                # Establecer altura de fila para acomodar contenido
-                row[0].parent.row_dimensions[row[0].row].height = 60
-            
-            # Ajustar anchos de columna
-            worksheet.column_dimensions['A'].width = 22
-            worksheet.column_dimensions['B'].width = 15
-            worksheet.column_dimensions['C'].width = 35
-            worksheet.column_dimensions['D'].width = 35
-            worksheet.column_dimensions['E'].width = 35
-        
-        buffer.seek(0)
-        
-        st.download_button(
-            label="📥 Descargar Excel",
-            data=buffer,
-            file_name=f"Casos_por_Nivel_{mes}_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
+        nivel1_unique = sorted(df_temp['NIVEL 1'].unique())
+        nivel1_filtro = st.selectbox(
+            "Nivel 1",
+            ["Todos"] + list(nivel1_unique),
+            key="nivel1_filtro_casos"
         )
+    
+    # Filtrar por nivel 1
+    if nivel1_filtro == "Todos":
+        df_temp2 = df_temp.copy()
+    else:
+        df_temp2 = df_temp[df_temp['NIVEL 1'] == nivel1_filtro]
+    
+    with col3:
+        nivel2_unique = sorted(df_temp2['NIVEL 2'].unique())
+        nivel2_filtro = st.selectbox(
+            "Nivel 2",
+            ["Todos"] + list(nivel2_unique),
+            key="nivel2_filtro_casos"
+        )
+    
+    # Filtrar por nivel 2
+    if nivel2_filtro == "Todos":
+        df_temp3 = df_temp2.copy()
+    else:
+        df_temp3 = df_temp2[df_temp2['NIVEL 2'] == nivel2_filtro]
+    
+    with col4:
+        nivel3_unique = sorted(df_temp3['NIVEL 3'].unique())
+        nivel3_filtro = st.selectbox(
+            "Nivel 3",
+            ["Todos"] + list(nivel3_unique),
+            key="nivel3_filtro_casos"
+        )
+    
+    # Aplicar todos los filtros
+    df_filtrado = df_mantra_mes.copy()
+    
+    if agente_filtro != "Todos":
+        df_filtrado = df_filtrado[df_filtrado['Agente'] == agente_filtro]
+    
+    if nivel1_filtro != "Todos":
+        df_filtrado = df_filtrado[df_filtrado['NIVEL 1'] == nivel1_filtro]
+    
+    if nivel2_filtro != "Todos":
+        df_filtrado = df_filtrado[df_filtrado['NIVEL 2'] == nivel2_filtro]
+    
+    if nivel3_filtro != "Todos":
+        df_filtrado = df_filtrado[df_filtrado['NIVEL 3'] == nivel3_filtro]
+    
+    # Mostrar total de casos filtrados
+    total_casos_filtrados = len(df_filtrado)
+    st.markdown(f"### Total de Casos: **{total_casos_filtrados}**")
+    
+    # Mostrar vista previa (primeros 10 registros)
+    if total_casos_filtrados > 0:
+        col_preview, col_download = st.columns([4, 1])
+        
+        with col_preview:
+            st.markdown("#### Vista Previa (Primeros 10 registros)")
+            
+            # Seleccionar columnas para mostrar
+            cols_mostrar = ['Agente', 'NIVEL 1', 'NIVEL 2', 'NIVEL 3']
+            if 'Telefono' in df_filtrado.columns:
+                cols_mostrar.insert(1, 'Telefono')
+            if 'Numero Caso' in df_filtrado.columns:
+                cols_mostrar.insert(0, 'Numero Caso')
+            
+            df_preview = df_filtrado[cols_mostrar].head(10)
+            st.dataframe(df_preview, use_container_width=True, hide_index=True)
+            
+            if total_casos_filtrados > 10:
+                st.caption(f"Mostrando 10 de {total_casos_filtrados} registros")
+        
+        with col_download:
+            st.markdown("#### Descargar")
+            
+            # Crear archivo Excel con todos los datos filtrados
+            from io import BytesIO
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment
+            
+            buffer = BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df_filtrado.to_excel(writer, sheet_name='Casos Filtrados', index=False)
+                
+                workbook = writer.book
+                worksheet = writer.sheets['Casos Filtrados']
+                
+                # Estilos
+                header_fill = PatternFill(start_color="0066cc", end_color="0066cc", fill_type="solid")
+                header_font = Font(color="FFFFFF", bold=True, size=11)
+                
+                # Aplicar estilos al encabezado
+                for cell in worksheet[1]:
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                
+                # Aplicar estilos a datos
+                for row in worksheet.iter_rows(min_row=2, max_row=worksheet.max_row):
+                    for cell in row:
+                        cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+                
+                # Ajustar anchos de columna
+                for col_num, col in enumerate(worksheet.columns, 1):
+                    col_letter = openpyxl.utils.get_column_letter(col_num)
+                    worksheet.column_dimensions[col_letter].width = 20
+            
+            buffer.seek(0)
+            
+            st.download_button(
+                label="📥 Descargar Excel",
+                data=buffer,
+                file_name=f"Casos_Filtrados_{mes}_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+    else:
+        st.warning("No hay casos que coincidan con los filtros seleccionados")
+
 else:
     st.warning(f"No hay datos de casos disponibles para {mes}")
 
