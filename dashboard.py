@@ -2256,20 +2256,7 @@ if not df_casos.empty:
         st.markdown("#### Detalle de Casos por Nivel")
         
         # Crear tabla HTML personalizada
-        html_casos = '''
-        <div class="meta-tabla">
-        <table style="width: 100%;">
-        <thead>
-        <tr style="background-color: #0066cc; color: white;">
-            <th style="padding: 12px; text-align: left; width: 20%;">Agente</th>
-            <th style="padding: 12px; text-align: center; width: 12%;">Total Casos</th>
-            <th style="padding: 12px; text-align: center; width: 23%;">NIVEL 1</th>
-            <th style="padding: 12px; text-align: center; width: 23%;">NIVEL 2</th>
-            <th style="padding: 12px; text-align: center; width: 22%;">NIVEL 3</th>
-        </tr>
-        </thead>
-        <tbody>
-        '''
+        html_casos = '<div class="meta-tabla"><table style="width: 100%;"><thead><tr style="background-color: #0066cc; color: white;"><th style="padding: 12px; text-align: left; width: 20%;">Agente</th><th style="padding: 12px; text-align: center; width: 12%;">Total Casos</th><th style="padding: 12px; text-align: center; width: 23%;">NIVEL 1</th><th style="padding: 12px; text-align: center; width: 23%;">NIVEL 2</th><th style="padding: 12px; text-align: center; width: 22%;">NIVEL 3</th></tr></thead><tbody>'
         
         for idx, row in df_mostrar.iterrows():
             agente = row['Agente']
@@ -2299,27 +2286,9 @@ if not df_casos.empty:
             else:
                 nivel3_str = str(nivel3)
             
-            html_casos += f'''
-            <tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top;">
-                <td style="padding: 12px; font-weight: 700; color: #0066cc; font-size: 11px;">{agente}</td>
-                <td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b; font-size: 14px;">{total}</td>
-                <td style="padding: 10px; font-size: 11px; text-align: left;">
-                    <div style="background: #f0f9ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel1_str}</div>
-                </td>
-                <td style="padding: 10px; font-size: 11px; text-align: left;">
-                    <div style="background: #f5f3ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel2_str}</div>
-                </td>
-                <td style="padding: 10px; font-size: 11px; text-align: left;">
-                    <div style="background: #fef3c7; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel3_str}</div>
-                </td>
-            </tr>
-            '''
+            html_casos += f'<tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top;"><td style="padding: 12px; font-weight: 700; color: #0066cc; font-size: 11px;">{agente}</td><td style="padding: 12px; text-align: center; font-weight: 700; color: #1e293b; font-size: 14px;">{total}</td><td style="padding: 10px; font-size: 11px; text-align: left;"><div style="background: #f0f9ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel1_str}</div></td><td style="padding: 10px; font-size: 11px; text-align: left;"><div style="background: #f5f3ff; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel2_str}</div></td><td style="padding: 10px; font-size: 11px; text-align: left;"><div style="background: #fef3c7; padding: 8px; border-radius: 4px; line-height: 1.4;">{nivel3_str}</div></td></tr>'
         
-        html_casos += '''
-        </tbody>
-        </table>
-        </div>
-        '''
+        html_casos += '</tbody></table></div>'
         
         st.markdown(html_casos, unsafe_allow_html=True)
     
