@@ -917,7 +917,11 @@ def load_data(mes_seleccionado=None):
     
     if df_lista is not None and not df_lista.empty:
         # Filtrar por el mes seleccionado
-        df_mes_metas = df_lista[df_lista['Mes'] == mes_seleccionado]
+        df_mes_metas = df_lista[df_lista['Mes'] == mes_seleccionado].copy()
+        
+        # Limpiar espacios en blanco de Asesor y convertir Meta a numérico
+        df_mes_metas['Asesor'] = df_mes_metas['Asesor'].astype(str).str.strip()
+        df_mes_metas['Meta'] = pd.to_numeric(df_mes_metas['Meta'], errors='coerce').fillna(0)
         
         # Crear diccionario {Asesor: Meta} SOLO con los asesores activos en este mes
         for idx, row in df_mes_metas.iterrows():
