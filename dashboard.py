@@ -1909,9 +1909,9 @@ with tab1:
             # Obtener datos de LISTA
             df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
             
-            # Clasificar asesores por horario
-            full_time = df_mes_lista[df_mes_lista['Meta'] >= meta_minima]['Asesor'].tolist()
-            part_time = df_mes_lista[df_mes_lista['Meta'] < meta_minima]['Asesor'].tolist()
+            # Clasificar asesores por horario: FULL TIME son meta 60 o meta 45, resto es PART TIME
+            full_time = df_mes_lista[(df_mes_lista['Meta'] == 60) | (df_mes_lista['Meta'] == 45)]['Asesor'].tolist()
+            part_time = df_mes_lista[(df_mes_lista['Meta'] != 60) & (df_mes_lista['Meta'] != 45)]['Asesor'].tolist()
             
             def procesar_horario(lista_asesoras):
                 datos_tabla = []
