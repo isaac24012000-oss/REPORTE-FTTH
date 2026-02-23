@@ -1900,6 +1900,11 @@ with tab1:
             if df_lista is None or df_drive is None:
                 return None, None
             
+            # Preparar LISTA - limpiar espacios en Asesor y convertir Meta a numérico
+            df_lista_clean = df_lista.copy()
+            df_lista_clean['Asesor'] = df_lista_clean['Asesor'].astype(str).str.strip()
+            df_lista_clean['Meta'] = pd.to_numeric(df_lista_clean['Meta'], errors='coerce').fillna(0)
+            
             # Preparar DRIVE
             df_drive_clean = df_drive.copy()
             df_drive_clean['ASESOR'] = df_drive_clean['ASESOR'].astype(str).str.strip()
@@ -1907,7 +1912,7 @@ with tab1:
             df_mes_drive = df_drive_clean[df_drive_clean['MES'] == mes_sel]
             
             # Obtener datos de LISTA
-            df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
+            df_mes_lista = df_lista_clean[df_lista_clean['Mes'] == mes_sel]
             
             # Clasificar asesores por horario: FULL TIME son meta 60 o meta 45, resto es PART TIME
             full_time = df_mes_lista[(df_mes_lista['Meta'] == 60) | (df_mes_lista['Meta'] == 45)]['Asesor'].tolist()
@@ -2029,14 +2034,14 @@ with tab1:
         col_full_time, col_part_time = st.columns(2)
         
         with col_full_time:
-            st.markdown('<h4 style="text-align: center; color: #3b82f6; margin-bottom: 10px;">⏰ FULL TIME (Meta: 60)</h4>', unsafe_allow_html=True)
+            st.markdown('<h4 style="text-align: center; color: #3b82f6; margin-bottom: 10px;">⏰ FULL TIME </h4>', unsafe_allow_html=True)
             if html_full_time:
                 st.markdown(html_full_time, unsafe_allow_html=True)
             else:
                 st.info("No hay asesores FULL TIME")
         
         with col_part_time:
-            st.markdown('<h4 style="text-align: center; color: #8b5cf6; margin-bottom: 10px;">⏰ PART TIME (Meta < 60)</h4>', unsafe_allow_html=True)
+            st.markdown('<h4 style="text-align: center; color: #8b5cf6; margin-bottom: 10px;">⏰ PART TIME </h4>', unsafe_allow_html=True)
             if html_part_time:
                 st.markdown(html_part_time, unsafe_allow_html=True)
             else:
