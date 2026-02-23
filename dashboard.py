@@ -1888,23 +1888,17 @@ with tab1:
             }
         )
         
-        # ============= COMPARATIVA EQUIPOS ADRIAN vs YAZMIN dentro del tab1 =============
+        # ============= COMPARATIVA POR HORARIO: FULL TIME vs PART TIME dentro del tab1 =============
         st.markdown('<div style="margin-top: 40px;"></div>', unsafe_allow_html=True)
-        st.markdown("#### 📊 Comparativa Equipos: ADRIAN vs YAZMIN")
+        st.markdown("#### 📊 Comparativa por Horario: FULL TIME vs PART TIME")
         
-        # Definir asesoras por equipo
-        equipo_adrian = ['ZIM_ALEXISGK_VTP', 'ZIM_NERYIU_VTP', 'ZIM_JULIOLD_VTP', 'ZIM_KARINASE_VTP', 
-                         'ZIM_DANIELAAJ_VTP', 'ZIM_ALVAROLC_VTP', 'ZIM_CARLACA_VTP', 'ZIM_MILAGROSMM_VTP']
-        equipo_yazmin = ['ZIM_JESUSSZ_VTP', 'ZIM_INDIRAMM_VTP', 'ZIM_STEVENCM_VTP', 'ZIM_ZOILASM_VTP', 
-                         'ZIM_FLAVIOTB_VTP', 'ZIM_MELANYOA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
-        
-        # Función para generar datos detallados de cada equipo
-        def generar_tabla_equipo(lista_asesoras, mes_sel, nombre_equipo):
+        # Función para generar datos detallados por horario
+        def generar_tabla_horario(mes_sel, meta_minima=60):
             df_lista = load_lista_metas()
             df_drive = load_drive_data()
             
             if df_lista is None or df_drive is None:
-                return None
+                return None, None
             
             # Preparar DRIVE
             df_drive_clean = df_drive.copy()
@@ -1915,62 +1909,71 @@ with tab1:
             # Obtener datos de LISTA
             df_mes_lista = df_lista[df_lista['Mes'] == mes_sel]
             
-            datos_tabla = []
-            total_meta = 0
-            total_instalado = 0
-            total_pendiente = 0
+            # Clasificar asesores por horario
+            full_time = df_mes_lista[df_mes_lista['Meta'] >= meta_minima]['Asesor'].tolist()
+            part_time = df_mes_lista[df_mes_lista['Meta'] < meta_minima]['Asesor'].tolist()
             
-            for idx, asesor in enumerate(lista_asesoras, 1):
-                # Meta
-                meta = df_mes_lista[df_mes_lista['Asesor'] == asesor]['Meta'].sum()
-                if meta == 0:
-                    meta = 0
+            def procesar_horario(lista_asesoras):
+                datos_tabla = []
+                total_meta = 0
+                total_instalado = 0
+                total_pendiente = 0
                 
-                # Instalado y Pendiente
-                df_asesor = df_mes_drive[df_mes_drive['ASESOR'] == asesor]
-                instalado = len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
-                pendiente = len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
+                for idx, asesor in enumerate(lista_asesoras, 1):
+                    # Meta
+                    meta = df_mes_lista[df_mes_lista['Asesor'] == asesor]['Meta'].sum()
+                    if meta == 0:
+                        meta = 0
+                    
+                    # Instalado y Pendiente
+                    df_asesor = df_mes_drive[df_mes_drive['ASESOR'] == asesor]
+                    instalado = len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
+                    pendiente = len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
+                    
+                    # Alcance (Cumplimiento)
+                    alcance = round((instalado / meta * 100)) if meta > 0 else 0
+                    
+                    datos_tabla.append({
+                        'pos': idx,
+                        'asesor': asesor,
+                        'meta': int(meta),
+                        'instalado': int(instalado),
+                        'pendiente': int(pendiente),
+                        'alcance': int(alcance)
+                    })
+                    
+                    total_meta += meta
+                    total_instalado += instalado
+                    total_pendiente += pendiente
                 
-                # Alcance (Cumplimiento)
-                alcance = round((instalado / meta * 100)) if meta > 0 else 0
+                # Ordenar datos por alcance de mayor a menor
+                datos_tabla_ordenado = sorted(datos_tabla, key=lambda x: x['alcance'], reverse=True)
                 
-                datos_tabla.append({
-                    'pos': idx,
-                    'asesor': asesor,
-                    'meta': int(meta),
-                    'instalado': int(instalado),
-                    'pendiente': int(pendiente),
-                    'alcance': int(alcance)
-                })
+                # Actualizar posiciones después del ordenamiento
+                for idx, item in enumerate(datos_tabla_ordenado, 1):
+                    item['pos'] = idx
                 
-                total_meta += meta
-                total_instalado += instalado
-                total_pendiente += pendiente
-            
-            # Ordenar datos por alcance de mayor a menor
-            datos_tabla_ordenado = sorted(datos_tabla, key=lambda x: x['alcance'], reverse=True)
-            
-            # Actualizar posiciones después del ordenamiento
-            for idx, item in enumerate(datos_tabla_ordenado, 1):
-                item['pos'] = idx
-            
-            return {
-                'datos': datos_tabla_ordenado,
-                'totales': {
-                    'meta': int(total_meta),
-                    'instalado': int(total_instalado),
-                    'pendiente': int(total_pendiente),
-                    'alcance': round((total_instalado / total_meta * 100)) if total_meta > 0 else 0
+                return {
+                    'datos': datos_tabla_ordenado,
+                    'totales': {
+                        'meta': int(total_meta),
+                        'instalado': int(total_instalado),
+                        'pendiente': int(total_pendiente),
+                        'alcance': round((total_instalado / total_meta * 100)) if total_meta > 0 else 0
+                    }
                 }
-            }
+            
+            datos_full_time = procesar_horario(full_time)
+            datos_part_time = procesar_horario(part_time)
+            
+            return datos_full_time, datos_part_time
         
-        # Generar datos de ambos equipos
-        datos_adrian_completo = generar_tabla_equipo(equipo_adrian, mes_nombre_analisis, "ADRIAN")
-        datos_yazmin_completo = generar_tabla_equipo(equipo_yazmin, mes_nombre_analisis, "YAZMIN")
+        # Generar datos de ambos horarios
+        datos_full_time, datos_part_time = generar_tabla_horario(mes_nombre_analisis)
         
         # Crear tablas HTML detalladas
-        def crear_tabla_html_equipo(datos_equipo, nombre_equipo, color_header, color_accent):
-            if datos_equipo is None:
+        def crear_tabla_html_horario(datos_horario, nombre_horario, color_header, color_accent):
+            if datos_horario is None or not datos_horario['datos']:
                 return ""
             
             html = f'''<div style="margin: 20px 0; background: white; border-radius: 8px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -1989,7 +1992,7 @@ with tab1:
             '''
             
             # Agregar filas de datos
-            for item in datos_equipo['datos']:
+            for item in datos_horario['datos']:
                 color_fila = '#f9fafb' if item['pos'] % 2 == 0 else '#ffffff'
                 alcance_color = '#10b981' if item['alcance'] >= 70 else '#f59e0b' if item['alcance'] >= 50 else '#ef4444'
                 
@@ -2003,7 +2006,7 @@ with tab1:
                 </tr>'''
             
             # Agregar fila de totales
-            totales = datos_equipo['totales']
+            totales = datos_horario['totales']
             alcance_total_color = '#10b981' if totales['alcance'] >= 70 else '#f59e0b' if totales['alcance'] >= 50 else '#ef4444'
             html += f'''<tr style="background: {color_header}; color: white; font-weight: 700;">
                     <td colspan="2" style="padding: 10px 12px; text-align: center; font-size: 12px; color: white;">{totales['meta']}</td>
@@ -2018,20 +2021,26 @@ with tab1:
             
             return html
         
-        # Generar HTML para ambos equipos
-        html_adrian = crear_tabla_html_equipo(datos_adrian_completo, "ADRIAN", "#667eea", "#667eea")
-        html_yazmin = crear_tabla_html_equipo(datos_yazmin_completo, "YAZMIN", "#f5576c", "#f5576c")
+        # Generar HTML para ambos horarios
+        html_full_time = crear_tabla_html_horario(datos_full_time, "FULL TIME", "#3b82f6", "#3b82f6")
+        html_part_time = crear_tabla_html_horario(datos_part_time, "PART TIME", "#8b5cf6", "#8b5cf6")
         
         # Mostrar tablas en dos columnas
-        col_adrian, col_yazmin = st.columns(2)
+        col_full_time, col_part_time = st.columns(2)
         
-        with col_adrian:
-            st.markdown('<h4 style="text-align: center; color: #667eea; margin-bottom: 10px;">👨‍💼 EQUIPO ADRIAN</h4>', unsafe_allow_html=True)
-            st.markdown(html_adrian, unsafe_allow_html=True)
+        with col_full_time:
+            st.markdown('<h4 style="text-align: center; color: #3b82f6; margin-bottom: 10px;">⏰ FULL TIME (Meta: 60)</h4>', unsafe_allow_html=True)
+            if html_full_time:
+                st.markdown(html_full_time, unsafe_allow_html=True)
+            else:
+                st.info("No hay asesores FULL TIME")
         
-        with col_yazmin:
-            st.markdown('<h4 style="text-align: center; color: #f5576c; margin-bottom: 10px;">👩‍💼 EQUIPO YAZMIN</h4>', unsafe_allow_html=True)
-            st.markdown(html_yazmin, unsafe_allow_html=True)
+        with col_part_time:
+            st.markdown('<h4 style="text-align: center; color: #8b5cf6; margin-bottom: 10px;">⏰ PART TIME (Meta < 60)</h4>', unsafe_allow_html=True)
+            if html_part_time:
+                st.markdown(html_part_time, unsafe_allow_html=True)
+            else:
+                st.info("No hay asesores PART TIME")
     else:
         st.warning(f"No hay datos de instaladas para {mes_seleccionado_display}")
 
