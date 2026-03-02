@@ -12,14 +12,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# Actualizado 21/01/2026 - VENTAS INSTALADAS DEL MES
+# Actualizado 02/03/2026 - Preparado para MARZO 2026
 
 # ============= CARGA DE DATOS DEL EXCEL =============
 
 @st.cache_data(ttl=3600)
 def load_mantra_data():
     """Carga datos de la hoja MANTRA del archivo REPORTE FTTH.xlsx
-    Actualizado: 21/01/2026 - Ahora filtra por MES en lugar de FECHA"""
+    Actualizado: 02/03/2026 - Ahora filtra por MES en lugar de FECHA"""
     excel_path = os.path.join(os.path.dirname(__file__), 'REPORTE FTTH.xlsx')
     
     try:
@@ -1364,14 +1364,15 @@ st.markdown("### ⚙️ Filtros y Opciones")
 col_filtros = st.columns(3, gap="medium")
 
 with col_filtros[0]:
-    mes = st.selectbox("📅 Selecciona Mes", ["Noviembre", "Diciembre", "Enero", "Febrero"], index=3)
+    mes = st.selectbox("📅 Selecciona Mes", ["Noviembre", "Diciembre", "Enero", "Febrero", "Marzo"], index=4)
 
 # Mapeo de meses a años
 mes_año_map = {
     "Noviembre": "Noviembre 2025",
     "Diciembre": "Diciembre 2025",
     "Enero": "Enero 2026",
-    "Febrero": "Febrero 2026"
+    "Febrero": "Febrero 2026",
+    "Marzo": "Marzo 2026"
 }
 
 # Header mejorado - Dinámico
