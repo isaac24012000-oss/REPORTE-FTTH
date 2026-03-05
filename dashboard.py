@@ -986,8 +986,8 @@ def load_data_codigo_carga(mes_seleccionado=None):
     """Carga datos agrupados por CODIGO DE CARGA (Agente) para un mes exacto.
     Incluye TODOS los agentes de MANTRA, incluso aquellos sin registros en DRIVE.
     - LEADS vienen de MANTRA (cantidad de registros por Agente)
-    - VENTAS = INSTALADAS + CANCELADAS (solo aquellos con PAGO='SI')
-    - PENDIENTES vienen de DRIVE (estado PENDIENTE)
+    - VENTAS = INSTALADAS + CANCELADAS + PENDIENTES (todos con PAGO='SI')
+    - PEND = cantidad de PENDIENTES (con PAGO='SI')
     Filtra por columna MES exacto en ambas hojas."""
     df_drive = load_drive_data()
     df_mantra = load_mantra_data()
@@ -1056,14 +1056,12 @@ def load_data_codigo_carga(mes_seleccionado=None):
             df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
             
             if not df_agente.empty:
-                # VENTAS = INSTALADAS + CANCELADAS (solo con PAGO='SI')
+                # VENTAS = INSTALADAS + CANCELADAS + PENDIENTES (todos con PAGO='SI')
                 df_agente_pago = df_agente[df_agente['PAGO'] == 'SI']
-                instaladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'INSTALADO'])
-                canceladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'CANCELADO'])
-                ventas = instaladas_pago + canceladas_pago
+                ventas = len(df_agente_pago)
                 
-                # PENDIENTES (sin filtro de PAGO)
-                pendientes = len(df_agente[df_agente['ESTADO'] == 'PENDIENTE'])
+                # PENDIENTES = registros con ESTADO='PENDIENTE' (con PAGO='SI')
+                pendientes = len(df_agente_pago[df_agente_pago['ESTADO'] == 'PENDIENTE'])
         
         grupos.append({
             'CODIGO_CARGA': agente,
