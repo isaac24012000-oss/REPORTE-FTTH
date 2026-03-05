@@ -2430,6 +2430,31 @@ if not df_codigos_carga.empty:
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_falta}22; color: {color_falta}; border-radius: 4px;">{ventas_falta}</td>
             </tr>'''
         
+        # Calcular y agregar fila de TOTALES
+        total_leads = df_datos['LEADS'].sum()
+        total_ventas = df_datos['VENTAS'].sum()
+        total_conv_ventas = int((total_ventas / total_leads * 100)) if total_leads > 0 else 0
+        total_pend = df_datos['PENDIENTES'].sum()
+        total_falta = df_datos['VENTAS_FALTA_10'].sum()
+        
+        # Determinar color para conversión total
+        if total_conv_ventas >= 10:
+            color_conv_total = '#10b981'  # Verde
+        elif total_conv_ventas == 9:
+            color_conv_total = '#f59e0b'  # Naranja
+        else:
+            color_conv_total = '#ef4444'  # Rojo
+        
+        html += f'''<tr style="background: linear-gradient(135deg, #0066cc 0%, #00d4ff 100%); color: white; font-weight: 700;">
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;"></td>
+            <td style="padding: 12px; text-align: left; font-weight: 700; font-size: 12px;">TOTAL</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_leads}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_ventas}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total}40; color: white; border-radius: 4px;">{total_conv_ventas}%</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_pend}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_falta}</td>
+        </tr>'''
+        
         html += '''</tbody>
         </table>
         </div>'''
