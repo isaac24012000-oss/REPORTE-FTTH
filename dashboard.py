@@ -2381,10 +2381,10 @@ if not df_codigos_carga.empty:
                 color_ventas = '#64748b'  # Gris
             
             # Determinar color para conversión
-            if conv_ventas >= 50:
+            if conv_ventas >= 10:
                 color_conv = '#10b981'  # Verde
-            elif conv_ventas >= 30:
-                color_conv = '#f59e0b'  # Amarillo
+            elif conv_ventas == 9:
+                color_conv = '#f59e0b'  # Naranja
             else:
                 color_conv = '#ef4444'  # Rojo
             
