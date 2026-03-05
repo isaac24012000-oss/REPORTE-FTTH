@@ -456,7 +456,7 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
 @st.cache_data(ttl=60)  # Reducir a 60 segundos para debug
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     """Obtiene VENTAS por DÍA para un mes específico.
-    VENTAS = INSTALADAS + CANCELADAS (con PAGO='SI')
+    VENTAS = todos los registros con PAGO='SI' (independientemente del ESTADO)
     Retorna un DataFrame con día y cantidad de ventas
     Filtra por fecha actual para no mostrar registros futuros"""
     df_drive = load_drive_data()
@@ -501,15 +501,11 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     año_filtro = df_mes['FECHA_AÑO'].max()
     df_mes = df_mes[df_mes['FECHA_AÑO'] == año_filtro]
     
-    # Filtrar VENTAS - INSTALADAS + CANCELADAS con PAGO='SI'
-    df_mes['ESTADO_CLEAN'] = df_mes['ESTADO'].astype(str).str.strip()
+    # Filtrar VENTAS - todos los registros con PAGO='SI'
     df_mes['PAGO_CLEAN'] = df_mes['PAGO'].astype(str).str.strip()
     
-    # Contar registros donde (ESTADO='INSTALADO' O ESTADO='CANCELADO') Y PAGO='SI'
-    df_ventas = df_mes[
-        ((df_mes['ESTADO_CLEAN'] == 'INSTALADO') | (df_mes['ESTADO_CLEAN'] == 'CANCELADO')) &
-        (df_mes['PAGO_CLEAN'] == 'SI')
-    ].copy()
+    # Contar todos los registros donde PAGO='SI' (sin importar ESTADO)
+    df_ventas = df_mes[df_mes['PAGO_CLEAN'] == 'SI'].copy()
     
     if df_ventas.empty:
         return pd.DataFrame()
