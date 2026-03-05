@@ -981,46 +981,63 @@ def load_data(mes_seleccionado=None):
 
 @st.cache_data(ttl=3600)
 def load_data_codigo_carga(mes_seleccionado=None):
-    """Carga datos agrupados por CODIGO DE CARGA (columna F) para un mes exacto.
-    Filtra por columna MES (A) y agrupa por CODIGO DE CARGA.
-    Retorna un DataFrame con conteos de INSTALADAS, CANCELADAS, PENDIENTES"""
+    """Carga datos agrupados por CODIGO DE CARGA (Agente) para un mes exacto.
+    - LEADS vienen de MANTRA (cantidad de registros por Agente)
+    - INSTALADAS, CANCELADAS, PENDIENTES vienen de DRIVE escalados por CODIGO DE CARGA
+    Filtra por columna MES exacto en ambas hojas."""
     df_drive = load_drive_data()
+    df_mantra = load_mantra_data()
     
-    if df_drive is None or df_drive.empty:
+    if df_drive is None or df_drive.empty or df_mantra is None or df_mantra.empty:
         return pd.DataFrame()
     
-    # Filtrar por MES exacto (columna A)
-    df_mes = df_drive[df_drive['MES'] == mes_seleccionado].copy()
+    # ============= LEADS DESDE MANTRA =============
+    # Filtrar por MES exacto en MANTRA
+    df_mantra_mes = df_mantra[df_mantra['Mes'] == mes_seleccionado].copy()
     
-    if df_mes.empty:
+    if df_mantra_mes.empty:
+        return pd.DataFrame()
+    
+    # Limpiar espacios en blanco en Agente
+    df_mantra_mes['Agente'] = df_mantra_mes['Agente'].astype(str).str.strip()
+    
+    # Agrupar por Agente y contar LEADS
+    leads_dict = df_mantra_mes.groupby('Agente').size().to_dict()
+    
+    # ============= ESTADÍSTICAS DESDE DRIVE =============
+    # Filtrar por MES exacto en DRIVE
+    df_drive_mes = df_drive[df_drive['MES'] == mes_seleccionado].copy()
+    
+    if df_drive_mes.empty:
         return pd.DataFrame()
     
     # Limpiar espacios en blanco en columnas clave
-    df_mes['CODIGO DE CARGA'] = df_mes['CODIGO DE CARGA'].astype(str).str.strip()
-    df_mes['ESTADO'] = df_mes['ESTADO'].astype(str).str.strip()
+    df_drive_mes['CODIGO DE CARGA'] = df_drive_mes['CODIGO DE CARGA'].astype(str).str.strip()
+    df_drive_mes['ESTADO'] = df_drive_mes['ESTADO'].astype(str).str.strip()
     
     # Agrupar por CODIGO DE CARGA y contar estados
     grupos = []
-    codigos_unicos = sorted(df_mes['CODIGO DE CARGA'].unique())
     
-    for codigo in codigos_unicos:
-        df_codigo = df_mes[df_mes['CODIGO DE CARGA'] == codigo]
+    # Obtener todos los agentes únicos de MANTRA (que son los CODIGO DE CARGA)
+    agentes_unicos = sorted(leads_dict.keys())
+    
+    for agente in agentes_unicos:
+        # Leads desde MANTRA
+        leads = leads_dict.get(agente, 0)
         
-        # Contar por estado
-        instaladas = len(df_codigo[df_codigo['ESTADO'] == 'INSTALADO'])
-        canceladas = len(df_codigo[df_codigo['ESTADO'] == 'CANCELADO'])
-        pendientes = len(df_codigo[df_codigo['ESTADO'] == 'PENDIENTE'])
+        # Contar estados en DRIVE
+        df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
         
-        # Total de registros para este código (leads)
-        leads = len(df_codigo)
+        instaladas = len(df_agente[df_agente['ESTADO'] == 'INSTALADO'])
+        canceladas = len(df_agente[df_agente['ESTADO'] == 'CANCELADO'])
+        pendientes = len(df_agente[df_agente['ESTADO'] == 'PENDIENTE'])
         
         grupos.append({
-            'CODIGO_CARGA': codigo,
+            'CODIGO_CARGA': agente,
             'LEADS': leads,
             'INSTALADAS': instaladas,
             'CANCELADAS': canceladas,
-            'PENDIENTES': pendientes,
-            'TOTAL': instaladas + canceladas + pendientes
+            'PENDIENTES': pendientes
         })
     
     if not grupos:
