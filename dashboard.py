@@ -456,7 +456,7 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
 @st.cache_data(ttl=60)  # Reducir a 60 segundos para debug
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     """Obtiene VENTAS por DÍA para un mes específico.
-    VENTAS = todos los registros excepto PAGO='NO'
+    VENTAS = todos los registros del mes (sin importar PAGO o ESTADO)
     Retorna un DataFrame con día y cantidad de ventas
     Filtra por fecha actual para no mostrar registros futuros"""
     df_drive = load_drive_data()
@@ -501,11 +501,8 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     año_filtro = df_mes['FECHA_AÑO'].max()
     df_mes = df_mes[df_mes['FECHA_AÑO'] == año_filtro]
     
-    # Filtrar VENTAS - todos los registros excepto PAGO='NO'
-    df_mes['PAGO_CLEAN'] = df_mes['PAGO'].astype(str).str.strip()
-    
-    # Contar todos los registros donde PAGO != 'NO'
-    df_ventas = df_mes[df_mes['PAGO_CLEAN'] != 'NO'].copy()
+    # Filtrar VENTAS - todos los registros sin importar PAGO o ESTADO
+    df_ventas = df_mes.copy()
     
     if df_ventas.empty:
         return pd.DataFrame()
@@ -986,8 +983,8 @@ def load_data_codigo_carga(mes_seleccionado=None):
     """Carga datos agrupados por CODIGO DE CARGA (Agente) para un mes exacto.
     Incluye TODOS los agentes de MANTRA, incluso aquellos sin registros en DRIVE.
     - LEADS vienen de MANTRA (cantidad de registros por Agente)
-    - VENTAS = todos los registros excepto PAGO='NO' (INSTALADAS + CANCELADAS + PENDIENTES con PAGO='SI')
-    - PEND = cantidad de PENDIENTES (PAGO != 'NO')
+    - VENTAS = todos los registros del mes (sin importar PAGO o ESTADO)
+    - PEND = cantidad de PENDIENTES
     Filtra por columna MES exacto en ambas hojas."""
     df_drive = load_drive_data()
     df_mantra = load_mantra_data()
@@ -1056,12 +1053,11 @@ def load_data_codigo_carga(mes_seleccionado=None):
             df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
             
             if not df_agente.empty:
-                # VENTAS = todos los registros excepto PAGO='NO'
-                df_agente_ventas = df_agente[df_agente['PAGO'] != 'NO']
-                ventas = len(df_agente_ventas)
+                # VENTAS = todos los registros sin importar PAGO o ESTADO
+                ventas = len(df_agente)
                 
-                # PENDIENTES = registros con ESTADO='PENDIENTE' (con PAGO != 'NO')
-                pendientes = len(df_agente_ventas[df_agente_ventas['ESTADO'] == 'PENDIENTE'])
+                # PENDIENTES = registros con ESTADO='PENDIENTE'
+                pendientes = len(df_agente[df_agente['ESTADO'] == 'PENDIENTE'])
         
         grupos.append({
             'CODIGO_CARGA': agente,
