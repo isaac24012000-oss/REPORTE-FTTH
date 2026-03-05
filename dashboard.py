@@ -982,6 +982,7 @@ def load_data(mes_seleccionado=None):
 @st.cache_data(ttl=3600)
 def load_data_codigo_carga(mes_seleccionado=None):
     """Carga datos agrupados por CODIGO DE CARGA (Agente) para un mes exacto.
+    Incluye TODOS los agentes de MANTRA, incluso aquellos sin registros en DRIVE.
     - LEADS vienen de MANTRA (cantidad de registros por Agente)
     - VENTAS = INSTALADAS + CANCELADAS (solo aquellos con PAGO='SI')
     - PENDIENTES vienen de DRIVE (estado PENDIENTE)
@@ -1014,25 +1015,25 @@ def load_data_codigo_carga(mes_seleccionado=None):
     df_drive_mes = df_drive[df_drive['MES'] == mes_seleccionado].copy()
     
     if df_drive_mes.empty:
-        return pd.DataFrame()
-    
-    # Limpiar espacios en blanco en columnas clave
-    df_drive_mes['CODIGO DE CARGA'] = df_drive_mes['CODIGO DE CARGA'].astype(str).str.strip()
-    df_drive_mes['ESTADO'] = df_drive_mes['ESTADO'].astype(str).str.strip()
-    df_drive_mes['PAGO'] = df_drive_mes['PAGO'].astype(str).str.strip()
-    df_drive_mes['FECHA'] = pd.to_datetime(df_drive_mes['FECHA'], errors='coerce')
-    
-    # Mapeo de meses a números para validar fecha
-    mes_numeros_inv = {
-        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
-        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
-        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
-    }
-    mes_num = mes_numeros_inv.get(mes_seleccionado, None)
-    
-    # Filtrar por fecha real del mes (excluir fechas que no pertenecen al mes)
-    if mes_num:
-        df_drive_mes = df_drive_mes[df_drive_mes['FECHA'].dt.month == mes_num].copy()
+        df_drive_mes = pd.DataFrame()
+    else:
+        # Limpiar espacios en blanco en columnas clave
+        df_drive_mes['CODIGO DE CARGA'] = df_drive_mes['CODIGO DE CARGA'].astype(str).str.strip()
+        df_drive_mes['ESTADO'] = df_drive_mes['ESTADO'].astype(str).str.strip()
+        df_drive_mes['PAGO'] = df_drive_mes['PAGO'].astype(str).str.strip()
+        df_drive_mes['FECHA'] = pd.to_datetime(df_drive_mes['FECHA'], errors='coerce')
+        
+        # Mapeo de meses a números para validar fecha
+        mes_numeros_inv = {
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+        }
+        mes_num = mes_numeros_inv.get(mes_seleccionado, None)
+        
+        # Filtrar por fecha real del mes (excluir fechas que no pertenecen al mes)
+        if mes_num:
+            df_drive_mes = df_drive_mes[df_drive_mes['FECHA'].dt.month == mes_num].copy()
     
     # Agrupar por CODIGO DE CARGA y contar estados
     grupos = []
@@ -1044,17 +1045,23 @@ def load_data_codigo_carga(mes_seleccionado=None):
         # Leads desde MANTRA
         leads = leads_dict.get(agente, 0)
         
-        # Filtrar registros del agente en DRIVE
-        df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
+        # Inicializar contadores
+        ventas = 0
+        pendientes = 0
         
-        # VENTAS = INSTALADAS + CANCELADAS (solo con PAGO='SI')
-        df_agente_pago = df_agente[df_agente['PAGO'] == 'SI']
-        instaladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'INSTALADO'])
-        canceladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'CANCELADO'])
-        ventas = instaladas_pago + canceladas_pago
-        
-        # PENDIENTES (sin filtro de PAGO)
-        pendientes = len(df_agente[df_agente['ESTADO'] == 'PENDIENTE'])
+        # Si hay datos en DRIVE, buscar registros del agente
+        if not df_drive_mes.empty:
+            df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
+            
+            if not df_agente.empty:
+                # VENTAS = INSTALADAS + CANCELADAS (solo con PAGO='SI')
+                df_agente_pago = df_agente[df_agente['PAGO'] == 'SI']
+                instaladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'INSTALADO'])
+                canceladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'CANCELADO'])
+                ventas = instaladas_pago + canceladas_pago
+                
+                # PENDIENTES (sin filtro de PAGO)
+                pendientes = len(df_agente[df_agente['ESTADO'] == 'PENDIENTE'])
         
         grupos.append({
             'CODIGO_CARGA': agente,
@@ -2435,7 +2442,7 @@ if not df_codigos_carga.empty:
         total_ventas = df_datos['VENTAS'].sum()
         total_conv_ventas = int((total_ventas / total_leads * 100)) if total_leads > 0 else 0
         total_pend = df_datos['PENDIENTES'].sum()
-        total_falta = df_datos['VENTAS_FALTA_10'].sum()
+        total_falta = int(max(0, (total_leads * 0.10) - total_ventas))
         
         # Determinar color para conversión total
         if total_conv_ventas >= 10:
