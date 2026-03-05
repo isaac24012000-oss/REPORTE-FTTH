@@ -1051,6 +1051,9 @@ def load_data_codigo_carga(mes_seleccionado=None):
     
     df_resultado = pd.DataFrame(grupos)
     
+    # Calcular % Conversión de Ventas: (VENTAS / LEADS) * 100
+    df_resultado['CONV_VENTAS'] = (df_resultado['VENTAS'] / df_resultado['LEADS'] * 100).round(0).astype(int)
+    
     # Ordenar por VENTAS de mayor a menor
     df_resultado = df_resultado.sort_values('VENTAS', ascending=False).reset_index(drop=True)
     
@@ -2355,6 +2358,7 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">VENTAS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">%CONV. VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">PEND</th>
             </tr>
         </thead>
@@ -2367,6 +2371,7 @@ if not df_codigos_carga.empty:
             codigo = row['CODIGO_CARGA']
             leads = int(row['LEADS'])
             ventas = int(row['VENTAS'])
+            conv_ventas = int(row['CONV_VENTAS'])
             pend = int(row['PENDIENTES'])
             
             # Determinar color para ventas
@@ -2375,11 +2380,20 @@ if not df_codigos_carga.empty:
             else:
                 color_ventas = '#64748b'  # Gris
             
+            # Determinar color para conversión
+            if conv_ventas >= 50:
+                color_conv = '#10b981'  # Verde
+            elif conv_ventas >= 30:
+                color_conv = '#f59e0b'  # Amarillo
+            else:
+                color_conv = '#ef4444'  # Rojo
+            
             html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv}22; color: {color_conv}; border-radius: 4px;">{conv_ventas}%</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #f59e0b;">{pend}</td>
             </tr>'''
         
