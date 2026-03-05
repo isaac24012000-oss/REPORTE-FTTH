@@ -999,8 +999,12 @@ def load_data_codigo_carga(mes_seleccionado=None):
     if df_mantra_mes.empty:
         return pd.DataFrame()
     
-    # Limpiar espacios en blanco en Agente
+    # Limpiar espacios en blanco en Agente y estandarizar (agregar _VTP si no lo tiene)
     df_mantra_mes['Agente'] = df_mantra_mes['Agente'].astype(str).str.strip()
+    # Estandarizar: si no termina con _VTP, agregar lo
+    df_mantra_mes['Agente'] = df_mantra_mes['Agente'].apply(
+        lambda x: x if x.endswith('_VTP') else x + '_VTP'
+    )
     
     # Agrupar por Agente y contar LEADS
     leads_dict = df_mantra_mes.groupby('Agente').size().to_dict()
@@ -1027,7 +1031,7 @@ def load_data_codigo_carga(mes_seleccionado=None):
         # Leads desde MANTRA
         leads = leads_dict.get(agente, 0)
         
-        # Filtrar registros del agente
+        # Filtrar registros del agente en DRIVE
         df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
         
         # VENTAS = INSTALADAS + CANCELADAS (solo con PAGO='SI')
@@ -1053,6 +1057,11 @@ def load_data_codigo_carga(mes_seleccionado=None):
     
     # Calcular % Conversión de Ventas: (VENTAS / LEADS) * 100
     df_resultado['CONV_VENTAS'] = (df_resultado['VENTAS'] / df_resultado['LEADS'] * 100).round(0).astype(int)
+    
+    # Calcular ventas necesarias para llegar al 10%: (LEADS * 0.10) - VENTAS
+    df_resultado['VENTAS_FALTA_10'] = ((df_resultado['LEADS'] * 0.10) - df_resultado['VENTAS']).round(0).astype(int)
+    # Si ya alcanzó el 10%, mostrar 0
+    df_resultado['VENTAS_FALTA_10'] = df_resultado['VENTAS_FALTA_10'].apply(lambda x: max(0, x))
     
     # Ordenar por VENTAS de mayor a menor
     df_resultado = df_resultado.sort_values('VENTAS', ascending=False).reset_index(drop=True)
@@ -2359,7 +2368,8 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">%CONV. VENTAS</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">PEND</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">PEND</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">VENTAS FALTA 10%</th>
             </tr>
         </thead>
         <tbody>
@@ -2373,6 +2383,7 @@ if not df_codigos_carga.empty:
             ventas = int(row['VENTAS'])
             conv_ventas = int(row['CONV_VENTAS'])
             pend = int(row['PENDIENTES'])
+            ventas_falta = int(row['VENTAS_FALTA_10'])
             
             # Determinar color para ventas
             if ventas > 0:
@@ -2388,6 +2399,14 @@ if not df_codigos_carga.empty:
             else:
                 color_conv = '#ef4444'  # Rojo
             
+            # Determinar color para ventas falta
+            if ventas_falta == 0:
+                color_falta = '#10b981'  # Verde (ya alcanzó 10%)
+            elif ventas_falta <= 5:
+                color_falta = '#f59e0b'  # Naranja (cerca)
+            else:
+                color_falta = '#ef4444'  # Rojo (lejos)
+            
             html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
@@ -2395,6 +2414,7 @@ if not df_codigos_carga.empty:
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv}22; color: {color_conv}; border-radius: 4px;">{conv_ventas}%</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #f59e0b;">{pend}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_falta}22; color: {color_falta}; border-radius: 4px;">{ventas_falta}</td>
             </tr>'''
         
         html += '''</tbody>
