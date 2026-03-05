@@ -2467,12 +2467,16 @@ if not df_codigos_carga.empty:
     
     # Mostrar estadísticas generales
     st.markdown("#### 📊 Resumen General por Mes")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     total_codigos = len(df_codigos_carga)
     total_leads = df_codigos_carga['LEADS'].sum()
     total_ventas = df_codigos_carga['VENTAS'].sum()
     total_pend = df_codigos_carga['PENDIENTES'].sum()
+    
+    # Calcular cuántas ventas faltan para alcanzar el 10% de leads
+    ventas_necesarias_10 = int(total_leads * 0.10)
+    ventas_falta_10_general = max(0, ventas_necesarias_10 - total_ventas)
     
     with col1:
         st.metric("Códigos de Carga", total_codigos)
@@ -2482,6 +2486,8 @@ if not df_codigos_carga.empty:
         st.metric("Total Ventas", total_ventas)
     with col4:
         st.metric("Total Pendientes", total_pend)
+    with col5:
+        st.metric("Ventas Falta 10%", ventas_falta_10_general)
 else:
     st.info("No hay datos disponibles para el mes seleccionado")
 
