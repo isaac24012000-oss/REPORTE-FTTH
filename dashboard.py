@@ -983,7 +983,8 @@ def load_data(mes_seleccionado=None):
 def load_data_codigo_carga(mes_seleccionado=None):
     """Carga datos agrupados por CODIGO DE CARGA (Agente) para un mes exacto.
     - LEADS vienen de MANTRA (cantidad de registros por Agente)
-    - INSTALADAS, CANCELADAS, PENDIENTES vienen de DRIVE escalados por CODIGO DE CARGA
+    - VENTAS = INSTALADAS + CANCELADAS (solo aquellos con PAGO='SI')
+    - PENDIENTES vienen de DRIVE (estado PENDIENTE)
     Filtra por columna MES exacto en ambas hojas."""
     df_drive = load_drive_data()
     df_mantra = load_mantra_data()
@@ -1014,6 +1015,7 @@ def load_data_codigo_carga(mes_seleccionado=None):
     # Limpiar espacios en blanco en columnas clave
     df_drive_mes['CODIGO DE CARGA'] = df_drive_mes['CODIGO DE CARGA'].astype(str).str.strip()
     df_drive_mes['ESTADO'] = df_drive_mes['ESTADO'].astype(str).str.strip()
+    df_drive_mes['PAGO'] = df_drive_mes['PAGO'].astype(str).str.strip()
     
     # Agrupar por CODIGO DE CARGA y contar estados
     grupos = []
@@ -1025,18 +1027,22 @@ def load_data_codigo_carga(mes_seleccionado=None):
         # Leads desde MANTRA
         leads = leads_dict.get(agente, 0)
         
-        # Contar estados en DRIVE
+        # Filtrar registros del agente
         df_agente = df_drive_mes[df_drive_mes['CODIGO DE CARGA'] == agente]
         
-        instaladas = len(df_agente[df_agente['ESTADO'] == 'INSTALADO'])
-        canceladas = len(df_agente[df_agente['ESTADO'] == 'CANCELADO'])
+        # VENTAS = INSTALADAS + CANCELADAS (solo con PAGO='SI')
+        df_agente_pago = df_agente[df_agente['PAGO'] == 'SI']
+        instaladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'INSTALADO'])
+        canceladas_pago = len(df_agente_pago[df_agente_pago['ESTADO'] == 'CANCELADO'])
+        ventas = instaladas_pago + canceladas_pago
+        
+        # PENDIENTES (sin filtro de PAGO)
         pendientes = len(df_agente[df_agente['ESTADO'] == 'PENDIENTE'])
         
         grupos.append({
             'CODIGO_CARGA': agente,
             'LEADS': leads,
-            'INSTALADAS': instaladas,
-            'CANCELADAS': canceladas,
+            'VENTAS': ventas,
             'PENDIENTES': pendientes
         })
     
@@ -1045,8 +1051,8 @@ def load_data_codigo_carga(mes_seleccionado=None):
     
     df_resultado = pd.DataFrame(grupos)
     
-    # Ordenar por INSTALADAS de mayor a menor
-    df_resultado = df_resultado.sort_values('INSTALADAS', ascending=False).reset_index(drop=True)
+    # Ordenar por VENTAS de mayor a menor
+    df_resultado = df_resultado.sort_values('VENTAS', ascending=False).reset_index(drop=True)
     
     # Agregar posición
     df_resultado.insert(0, 'POS', range(1, len(df_resultado) + 1))
@@ -2348,8 +2354,7 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">POS</th>
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">INST</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">CANC</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">PEND</th>
             </tr>
         </thead>
@@ -2361,22 +2366,20 @@ if not df_codigos_carga.empty:
             pos = int(row['POS'])
             codigo = row['CODIGO_CARGA']
             leads = int(row['LEADS'])
-            inst = int(row['INSTALADAS'])
-            canc = int(row['CANCELADAS'])
+            ventas = int(row['VENTAS'])
             pend = int(row['PENDIENTES'])
             
-            # Determinar color para instaladas
-            if inst > 0:
-                color_inst = '#10b981'  # Verde
+            # Determinar color para ventas
+            if ventas > 0:
+                color_ventas = '#10b981'  # Verde
             else:
-                color_inst = '#64748b'  # Gris
+                color_ventas = '#64748b'  # Gris
             
             html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
-                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_inst};">{inst}</td>
-                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #ef4444;">{canc}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #f59e0b;">{pend}</td>
             </tr>'''
         
@@ -2392,12 +2395,11 @@ if not df_codigos_carga.empty:
     
     # Mostrar estadísticas generales
     st.markdown("#### 📊 Resumen General por Mes")
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
     
     total_codigos = len(df_codigos_carga)
     total_leads = df_codigos_carga['LEADS'].sum()
-    total_inst = df_codigos_carga['INSTALADAS'].sum()
-    total_canc = df_codigos_carga['CANCELADAS'].sum()
+    total_ventas = df_codigos_carga['VENTAS'].sum()
     total_pend = df_codigos_carga['PENDIENTES'].sum()
     
     with col1:
@@ -2405,10 +2407,8 @@ if not df_codigos_carga.empty:
     with col2:
         st.metric("Total Leads", total_leads)
     with col3:
-        st.metric("Total Instaladas", total_inst)
+        st.metric("Total Ventas", total_ventas)
     with col4:
-        st.metric("Total Canceladas", total_canc)
-    with col5:
         st.metric("Total Pendientes", total_pend)
 else:
     st.info("No hay datos disponibles para el mes seleccionado")
