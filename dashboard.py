@@ -2387,9 +2387,7 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">VENTAS</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">%CONV. VENTAS</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">PEND</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">VENTAS FALTA 10%</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">%CONV. VENTAS</th>
             </tr>
         </thead>
         <tbody>
@@ -2402,8 +2400,6 @@ if not df_codigos_carga.empty:
             leads = int(row['LEADS'])
             ventas = int(row['VENTAS'])
             conv_ventas = int(row['CONV_VENTAS'])
-            pend = int(row['PENDIENTES'])
-            ventas_falta = int(row['VENTAS_FALTA_10'])
             
             # Determinar color para ventas
             if ventas > 0:
@@ -2419,30 +2415,18 @@ if not df_codigos_carga.empty:
             else:
                 color_conv = '#ef4444'  # Rojo
             
-            # Determinar color para ventas falta
-            if ventas_falta == 0:
-                color_falta = '#10b981'  # Verde (ya alcanzó 10%)
-            elif ventas_falta <= 5:
-                color_falta = '#f59e0b'  # Naranja (cerca)
-            else:
-                color_falta = '#ef4444'  # Rojo (lejos)
-            
             html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv}22; color: {color_conv}; border-radius: 4px;">{conv_ventas}%</td>
-                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #f59e0b;">{pend}</td>
-                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_falta}22; color: {color_falta}; border-radius: 4px;">{ventas_falta}</td>
             </tr>'''
         
         # Calcular y agregar fila de TOTALES
         total_leads = df_datos['LEADS'].sum()
         total_ventas = df_datos['VENTAS'].sum()
         total_conv_ventas = int((total_ventas / total_leads * 100)) if total_leads > 0 else 0
-        total_pend = df_datos['PENDIENTES'].sum()
-        total_falta = int(max(0, (total_leads * 0.10) - total_ventas))
         
         # Determinar color para conversión total
         if total_conv_ventas >= 10:
@@ -2458,8 +2442,6 @@ if not df_codigos_carga.empty:
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_leads}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_ventas}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total}40; color: white; border-radius: 4px;">{total_conv_ventas}%</td>
-            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_pend}</td>
-            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_falta}</td>
         </tr>'''
         
         html += '''</tbody>
@@ -2479,11 +2461,8 @@ if not df_codigos_carga.empty:
     total_codigos = len(df_codigos_carga)
     total_leads = df_codigos_carga['LEADS'].sum()
     total_ventas = df_codigos_carga['VENTAS'].sum()
-    total_pend = df_codigos_carga['PENDIENTES'].sum()
     
-    # Calcular cuántas ventas faltan para alcanzar el 10% de leads
-    ventas_necesarias_10 = int(total_leads * 0.10)
-    ventas_falta_10_general = max(0, ventas_necesarias_10 - total_ventas)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric("Códigos de Carga", total_codigos)
@@ -2491,10 +2470,6 @@ if not df_codigos_carga.empty:
         st.metric("Total Leads", total_leads)
     with col3:
         st.metric("Total Ventas", total_ventas)
-    with col4:
-        st.metric("Total Pendientes", total_pend)
-    with col5:
-        st.metric("Falta para 10% Conversión", ventas_falta_10_general)
 else:
     st.info("No hay datos disponibles para el mes seleccionado")
 
