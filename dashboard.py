@@ -1020,6 +1020,19 @@ def load_data_codigo_carga(mes_seleccionado=None):
     df_drive_mes['CODIGO DE CARGA'] = df_drive_mes['CODIGO DE CARGA'].astype(str).str.strip()
     df_drive_mes['ESTADO'] = df_drive_mes['ESTADO'].astype(str).str.strip()
     df_drive_mes['PAGO'] = df_drive_mes['PAGO'].astype(str).str.strip()
+    df_drive_mes['FECHA'] = pd.to_datetime(df_drive_mes['FECHA'], errors='coerce')
+    
+    # Mapeo de meses a números para validar fecha
+    mes_numeros_inv = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    mes_num = mes_numeros_inv.get(mes_seleccionado, None)
+    
+    # Filtrar por fecha real del mes (excluir fechas que no pertenecen al mes)
+    if mes_num:
+        df_drive_mes = df_drive_mes[df_drive_mes['FECHA'].dt.month == mes_num].copy()
     
     # Agrupar por CODIGO DE CARGA y contar estados
     grupos = []
