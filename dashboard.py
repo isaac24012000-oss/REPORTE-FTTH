@@ -455,8 +455,9 @@ def debug_instaladas_por_dia(mes_seleccionado="Febrero", dia=3):
 
 @st.cache_data(ttl=60)  # Reducir a 60 segundos para debug
 def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
-    """Obtiene instaladas por DÍA para un mes específico.
-    Retorna un DataFrame con día y cantidad de instaladas
+    """Obtiene VENTAS por DÍA para un mes específico.
+    VENTAS = INSTALADAS + CANCELADAS (con PAGO='SI')
+    Retorna un DataFrame con día y cantidad de ventas
     Filtra por fecha actual para no mostrar registros futuros"""
     df_drive = load_drive_data()
     
@@ -500,12 +501,17 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     año_filtro = df_mes['FECHA_AÑO'].max()
     df_mes = df_mes[df_mes['FECHA_AÑO'] == año_filtro]
     
-    # Filtrar INSTALADO - SIMPLE, sin case insensitive
-    # Buscar cualquier registro donde ESTADO contenga "INSTALADO"
+    # Filtrar VENTAS - INSTALADAS + CANCELADAS con PAGO='SI'
     df_mes['ESTADO_CLEAN'] = df_mes['ESTADO'].astype(str).str.strip()
-    df_instaladas = df_mes[df_mes['ESTADO_CLEAN'] == 'INSTALADO'].copy()
+    df_mes['PAGO_CLEAN'] = df_mes['PAGO'].astype(str).str.strip()
     
-    if df_instaladas.empty:
+    # Contar registros donde (ESTADO='INSTALADO' O ESTADO='CANCELADO') Y PAGO='SI'
+    df_ventas = df_mes[
+        ((df_mes['ESTADO_CLEAN'] == 'INSTALADO') | (df_mes['ESTADO_CLEAN'] == 'CANCELADO')) &
+        (df_mes['PAGO_CLEAN'] == 'SI')
+    ].copy()
+    
+    if df_ventas.empty:
         return pd.DataFrame()
     
     # Validar días válidos del mes
@@ -517,13 +523,13 @@ def get_instaladas_por_semana(mes_seleccionado="Noviembre"):
     último_día_válido = último_día_mes.day
     
     # Filtrar días válidos
-    df_instaladas = df_instaladas[(df_instaladas['FECHA_DIA'] >= 1) & (df_instaladas['FECHA_DIA'] <= último_día_válido)]
+    df_ventas = df_ventas[(df_ventas['FECHA_DIA'] >= 1) & (df_ventas['FECHA_DIA'] <= último_día_válido)]
     
-    if df_instaladas.empty:
+    if df_ventas.empty:
         return pd.DataFrame()
     
     # Contar por día
-    df_dias = df_instaladas.groupby('FECHA_DIA').size().reset_index(name='INSTALADAS')
+    df_dias = df_ventas.groupby('FECHA_DIA').size().reset_index(name='INSTALADAS')
     df_dias.columns = ['DIA', 'INSTALADAS']
     
     # Crear etiquetas
@@ -1931,7 +1937,7 @@ with tab1:
                 opacity=0.85,
                 showscale=True,
                 colorbar=dict(
-                    title="Instaladas",
+                    title="Ventas",
                     tickfont=dict(size=10),
                     thickness=15,
                     len=0.7
@@ -1940,13 +1946,13 @@ with tab1:
             text=df_semanas['INSTALADAS'],
             textposition='outside',
             textfont=dict(size=13, color='#1e293b', family='Arial', weight='bold'),
-            hovertemplate='<b>%{x}</b><br><b>Instaladas:</b> <b>%{y}</b><extra></extra>',
-            name='Instaladas'
+            hovertemplate='<b>%{x}</b><br><b>Ventas:</b> <b>%{y}</b><extra></extra>',
+            name='Ventas'
         ))
         
         fig_semanas.update_layout(
             title=dict(
-                text=f"Distribución Diaria de Instaladas - {mes_seleccionado_display}",
+                text=f"Distribución Diaria de Ventas - {mes_seleccionado_display}",
                 font=dict(size=16, color='#1e293b', family='Arial'),
                 x=0.5,
                 xanchor='center'
@@ -1954,7 +1960,7 @@ with tab1:
             height=550,
             margin=dict(l=50, r=50, t=80, b=150),
             xaxis_title="Día",
-            yaxis_title="Cantidad de Instaladas",
+            yaxis_title="Cantidad de Ventas",
             xaxis=dict(
                 tickfont=dict(size=9, color='#64748b'),
                 tickangle=-90,
@@ -1977,17 +1983,17 @@ with tab1:
         # Mostrar tabla de datos
         st.markdown("#### Detalle Diario")
         df_tabla_semanas = df_semanas.copy()
-        df_tabla_semanas.columns = ['Día', 'Instaladas']
+        df_tabla_semanas.columns = ['Día', 'Ventas']
         
         # Calcular estadísticas
-        max_dia = df_tabla_semanas.loc[df_tabla_semanas['Instaladas'].idxmax(), 'Día']
-        max_valor = df_tabla_semanas['Instaladas'].max()
-        min_valor = df_tabla_semanas['Instaladas'].min()
-        promedio = df_tabla_semanas['Instaladas'].mean()
+        max_dia = df_tabla_semanas.loc[df_tabla_semanas['Ventas'].idxmax(), 'Día']
+        max_valor = df_tabla_semanas['Ventas'].max()
+        min_valor = df_tabla_semanas['Ventas'].min()
+        promedio = df_tabla_semanas['Ventas'].mean()
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Día con + Instaladas", max_dia, f"+{max_valor}")
+            st.metric("Día con + Ventas", max_dia, f"+{max_valor}")
         with col2:
             st.metric("Máximo por Día", max_valor)
         with col3:
