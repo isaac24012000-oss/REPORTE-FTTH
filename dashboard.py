@@ -2487,7 +2487,7 @@ if not df_codigos_carga.empty:
     with col4:
         st.metric("Total Pendientes", total_pend)
     with col5:
-        st.metric("Ventas Falta 10%", ventas_falta_10_general)
+        st.metric("Falta para 10% Conversión", ventas_falta_10_general)
 else:
     st.info("No hay datos disponibles para el mes seleccionado")
 
