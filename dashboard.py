@@ -2159,10 +2159,6 @@ for asesor in df_detail['Asesor']:
 df_detail['Leads'] = leads_list
 df_detail['Con Cobertura'] = con_cobertura_list
 
-# Agregar columnas de Meta 10% y Falta para Meta
-df_detail['Meta_10%'] = (df_detail['Leads'] * 0.1).astype(int)
-df_detail['Falta_Meta'] = (df_detail['Meta_10%'] - df_detail['Instaladas']).apply(lambda x: max(0, x))
-
 # Separar en Full Time (meta >= 55) y Part Time (meta < 55)
 # Excepción: CARLACA, ISABEL y LAURA son FULL TIME aunque tengan meta 45
 asesoras_fulltime_especial = ['ZIM_CARLACA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
@@ -2189,30 +2185,20 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
     mostrar_pendientes = mes == mes_actual
     
     if mostrar_pendientes:
-        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 3%;">Pos</th><th style="width: 14%;">Asesor</th><th style="width: 5%;">Leads</th><th style="width: 5%;">Cob</th><th style="width: 5%;">Meta</th><th style="width: 6%;">Meta 10%</th><th style="width: 5%;">Inst</th><th style="width: 5%;">Canc</th><th style="width: 5%;">Pend</th><th style="width: 6%;">Falta Meta</th><th style="width: 7%;">Cumpl%</th><th style="width: 7%;">Conv%</th><th style="width: 10%;">Estado</th></tr></thead><tbody>'
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 4%;">Pos</th><th style="width: 18%;">Asesor</th><th style="width: 6%;">Leads</th><th style="width: 8%;">Cob</th><th style="width: 6%;">Meta</th><th style="width: 7%;">Inst</th><th style="width: 7%;">Canc</th><th style="width: 7%;">Pend</th><th style="width: 8%;">Cumpl%</th><th style="width: 9%;">Conv%</th><th style="width: 12%;">Estado</th></tr></thead><tbody>'
     else:
-        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 3%;">Pos</th><th style="width: 16%;">Asesor</th><th style="width: 6%;">Leads</th><th style="width: 6%;">Cob</th><th style="width: 6%;">Meta</th><th style="width: 7%;">Meta 10%</th><th style="width: 6%;">Inst</th><th style="width: 6%;">Canc</th><th style="width: 7%;">Falta Meta</th><th style="width: 7%;">Cumpl%</th><th style="width: 7%;">Conv%</th><th style="width: 10%;">Estado</th></tr></thead><tbody>'
+        html_tabla = '<div class="meta-tabla"><table><thead><tr><th style="width: 5%;">Pos</th><th style="width: 22%;">Asesor</th><th style="width: 7%;">Leads</th><th style="width: 8%;">Cob</th><th style="width: 7%;">Meta</th><th style="width: 8%;">Inst</th><th style="width: 8%;">Canc</th><th style="width: 9%;">Cumpl%</th><th style="width: 10%;">Conv%</th><th style="width: 10%;">Estado</th></tr></thead><tbody>'
 
     for idx, (_, row) in enumerate(df_tabla.iterrows(), 1):
         asesor = row['Asesor']
         leads = int(row.get('Leads', 0))
         con_cobertura = int(row.get('Con Cobertura', 0))
         meta = int(row['Meta'])
-        meta_10 = int(row.get('Meta_10%', 0))
         instaladas = int(row['Instaladas'])
         canceladas = int(row['Canceladas'])
-        falta_meta = int(row.get('Falta_Meta', 0))
         pendientes = int(row.get('Pendientes', 0)) if mostrar_pendientes else 0
         cumpl = int(row['Cumplimiento'])
         efect = int(row['Efectividad'])
-        
-        # Determinar color para Falta Meta
-        if falta_meta <= 0:
-            color_falta = 'color: #10b981; font-weight: 700;'  # Verde - ya cumplió
-        elif falta_meta <= 5:
-            color_falta = 'color: #f59e0b; font-weight: 700;'  # Naranja - cerca
-        else:
-            color_falta = 'color: #ef4444; font-weight: 700;'  # Rojo - lejos
         
         # Determinar estado
         if cumpl >= 70:
@@ -2232,11 +2218,9 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
                 <td style="text-align: center; font-weight: 600; color: #0066cc;">{leads}</td>
                 <td style="text-align: center; font-weight: 600; color: #8b5cf6;">{con_cobertura}</td>
                 <td style="text-align: center; font-weight: 600;">{meta}</td>
-                <td style="text-align: center; font-weight: 600; color: #3b82f6;">{meta_10}</td>
                 <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #f59e0b;">{pendientes}</td>
-                <td style="text-align: center; {color_falta}">{falta_meta}</td>
                 <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
                 <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
                 <td style="text-align: center;">{estado}</td>
@@ -2248,10 +2232,8 @@ def generar_tabla_detalle(df_tabla, tipo_empleado):
                 <td style="text-align: center; font-weight: 600; color: #0066cc;">{leads}</td>
                 <td style="text-align: center; font-weight: 600; color: #8b5cf6;">{con_cobertura}</td>
                 <td style="text-align: center; font-weight: 600;">{meta}</td>
-                <td style="text-align: center; font-weight: 600; color: #3b82f6;">{meta_10}</td>
                 <td style="text-align: center; font-weight: 600; color: #10b981;">{instaladas}</td>
                 <td style="text-align: center; font-weight: 600; color: #ef4444;">{canceladas}</td>
-                <td style="text-align: center; {color_falta}">{falta_meta}</td>
                 <td style="text-align: center;"><div class="meta-valor">{cumpl}%</div></td>
                 <td style="text-align: center;"><div class="meta-valor" style="background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);">{efect}%</div></td>
                 <td style="text-align: center;">{estado}</td>
