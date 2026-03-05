@@ -979,6 +979,63 @@ def load_data(mes_seleccionado=None):
     df['Diferencia'] = df['Cumplimiento'] - 100
     return df
 
+@st.cache_data(ttl=3600)
+def load_data_codigo_carga(mes_seleccionado=None):
+    """Carga datos agrupados por CODIGO DE CARGA (columna F) para un mes exacto.
+    Filtra por columna MES (A) y agrupa por CODIGO DE CARGA.
+    Retorna un DataFrame con conteos de INSTALADAS, CANCELADAS, PENDIENTES"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return pd.DataFrame()
+    
+    # Filtrar por MES exacto (columna A)
+    df_mes = df_drive[df_drive['MES'] == mes_seleccionado].copy()
+    
+    if df_mes.empty:
+        return pd.DataFrame()
+    
+    # Limpiar espacios en blanco en columnas clave
+    df_mes['CODIGO DE CARGA'] = df_mes['CODIGO DE CARGA'].astype(str).str.strip()
+    df_mes['ESTADO'] = df_mes['ESTADO'].astype(str).str.strip()
+    
+    # Agrupar por CODIGO DE CARGA y contar estados
+    grupos = []
+    codigos_unicos = sorted(df_mes['CODIGO DE CARGA'].unique())
+    
+    for codigo in codigos_unicos:
+        df_codigo = df_mes[df_mes['CODIGO DE CARGA'] == codigo]
+        
+        # Contar por estado
+        instaladas = len(df_codigo[df_codigo['ESTADO'] == 'INSTALADO'])
+        canceladas = len(df_codigo[df_codigo['ESTADO'] == 'CANCELADO'])
+        pendientes = len(df_codigo[df_codigo['ESTADO'] == 'PENDIENTE'])
+        
+        # Total de registros para este código (leads)
+        leads = len(df_codigo)
+        
+        grupos.append({
+            'CODIGO_CARGA': codigo,
+            'LEADS': leads,
+            'INSTALADAS': instaladas,
+            'CANCELADAS': canceladas,
+            'PENDIENTES': pendientes,
+            'TOTAL': instaladas + canceladas + pendientes
+        })
+    
+    if not grupos:
+        return pd.DataFrame()
+    
+    df_resultado = pd.DataFrame(grupos)
+    
+    # Ordenar por INSTALADAS de mayor a menor
+    df_resultado = df_resultado.sort_values('INSTALADAS', ascending=False).reset_index(drop=True)
+    
+    # Agregar posición
+    df_resultado.insert(0, 'POS', range(1, len(df_resultado) + 1))
+    
+    return df_resultado
+
 # Estilos mejorados con tema moderno y premium
 st.markdown("""
 <style>
@@ -2257,12 +2314,87 @@ if not df_parttime.empty:
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
-# Mostrar tabla combinada de todos los asesores
+# Mostrar tabla combinada de todos los asesores por CODIGO DE CARGA
 st.markdown("#### 👥 Detalle Completo de Todos los Asesores")
-df_todos = pd.concat([df_fulltime, df_parttime], ignore_index=True).sort_values('Cumplimiento', ascending=False).reset_index(drop=True)
-if not df_todos.empty:
-    html_todos = generar_tabla_detalle(df_todos, "Todos")
-    st.markdown(html_todos, unsafe_allow_html=True)
+
+# Cargar datos agrupados por CODIGO DE CARGA para el mes seleccionado
+df_codigos_carga = load_data_codigo_carga(mes)
+
+if not df_codigos_carga.empty:
+    # Crear tabla HTML con el formato deseado
+    def generar_tabla_codigos_carga(df_datos):
+        """Genera tabla HTML para datos agrupados por CODIGO DE CARGA"""
+        html = '''<div style="margin: 20px 0; background: white; border-radius: 8px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #0066cc 0%, #00d4ff 100%); color: white;">
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">POS</th>
+                <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">INST</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">CANC</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">PEND</th>
+            </tr>
+        </thead>
+        <tbody>
+        '''
+        
+        for idx, row in df_datos.iterrows():
+            color_fila = '#f9fafb' if idx % 2 == 0 else '#ffffff'
+            pos = int(row['POS'])
+            codigo = row['CODIGO_CARGA']
+            leads = int(row['LEADS'])
+            inst = int(row['INSTALADAS'])
+            canc = int(row['CANCELADAS'])
+            pend = int(row['PENDIENTES'])
+            
+            # Determinar color para instaladas
+            if inst > 0:
+                color_inst = '#10b981'  # Verde
+            else:
+                color_inst = '#64748b'  # Gris
+            
+            html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
+                <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_inst};">{inst}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #ef4444;">{canc}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #f59e0b;">{pend}</td>
+            </tr>'''
+        
+        html += '''</tbody>
+        </table>
+        </div>'''
+        
+        return html
+    
+    # Generar y mostrar tabla
+    html_tabla = generar_tabla_codigos_carga(df_codigos_carga)
+    st.markdown(html_tabla, unsafe_allow_html=True)
+    
+    # Mostrar estadísticas generales
+    st.markdown("#### 📊 Resumen General por Mes")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    total_codigos = len(df_codigos_carga)
+    total_leads = df_codigos_carga['LEADS'].sum()
+    total_inst = df_codigos_carga['INSTALADAS'].sum()
+    total_canc = df_codigos_carga['CANCELADAS'].sum()
+    total_pend = df_codigos_carga['PENDIENTES'].sum()
+    
+    with col1:
+        st.metric("Códigos de Carga", total_codigos)
+    with col2:
+        st.metric("Total Leads", total_leads)
+    with col3:
+        st.metric("Total Instaladas", total_inst)
+    with col4:
+        st.metric("Total Canceladas", total_canc)
+    with col5:
+        st.metric("Total Pendientes", total_pend)
+else:
+    st.info("No hay datos disponibles para el mes seleccionado")
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
