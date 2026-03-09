@@ -2981,18 +2981,59 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
         df_diario = get_desglose_diario(asesor_seleccionado, mes)
         
         if not df_diario.empty:
-            # Formatear para mostrar
-            df_diario_formato = df_diario.copy()
-            df_diario_formato['Fecha'] = df_diario_formato.index.astype(str)
-            df_diario_formato = df_diario_formato[['Fecha', 'TOTAL'] + [col for col in df_diario_formato.columns if col not in ['Fecha', 'TOTAL']]]
+            # Selector de fecha
+            fechas_disponibles = sorted(df_diario.index.tolist())
+            col_filtro, col_resumen = st.columns([2, 1])
             
-            st.dataframe(
-                df_diario_formato,
-                use_container_width=True,
-                height=300
-            )
+            with col_filtro:
+                fecha_seleccionada = st.selectbox(
+                    "Selecciona un día:",
+                    fechas_disponibles,
+                    format_func=lambda x: x.strftime('%d/%m/%Y'),
+                    key="fecha_diaria_selector"
+                )
             
-            # Mostrar resumen
+            # Obtener datos del día seleccionado
+            if fecha_seleccionada in df_diario.index:
+                datos_dia = df_diario.loc[fecha_seleccionada]
+                
+                # Gráfico de barras para el día
+                col_grafico, col_metricas = st.columns([2, 1])
+                
+                with col_grafico:
+                    # Preparar datos para plotly
+                    estados = ['CANCELADO', 'PENDIENTE', 'INSTALADO']
+                    valores = [datos_dia.get(estado, 0) for estado in estados]
+                    colores = ['#d32f2f', '#ffc107', '#4caf50']
+                    
+                    fig = go.Figure(data=[
+                        go.Bar(
+                            x=estados,
+                            y=valores,
+                            marker=dict(color=colores),
+                            text=valores,
+                            textposition='auto'
+                        )
+                    ])
+                    
+                    fig.update_layout(
+                        title=f"Ventas del {fecha_seleccionada.strftime('%d/%m/%Y')}",
+                        xaxis_title="Estado",
+                        yaxis_title="Cantidad",
+                        height=400,
+                        showlegend=False
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col_metricas:
+                    st.metric("🔴 Canceladas", int(datos_dia.get('CANCELADO', 0)))
+                    st.metric("🟡 Pendientes", int(datos_dia.get('PENDIENTE', 0)))
+                    st.metric("🟢 Instaladas", int(datos_dia.get('INSTALADO', 0)))
+                    st.metric("📊 Total", int(datos_dia.get('TOTAL', 0)))
+            
+            # Mostrar resumen general
+            st.markdown("---")
             col_res1, col_res2 = st.columns(2)
             with col_res1:
                 st.metric("Días con ventas", len(df_diario))
