@@ -2396,8 +2396,8 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">TOTAL DE LEADS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);"># CON COBERTURA</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">%CONV. VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">TOTAL DE VENTAS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">%CONV. VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">%CONV. VENTAS FINAL</th>
             </tr>
         </thead>
@@ -2441,8 +2441,8 @@ if not df_codigos_carga.empty:
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{con_cobertura}</td>
-                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv_cob}22; color: {color_conv_cob}; border-radius: 4px;">{conv_ventas_cob}%</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv_cob}22; color: {color_conv_cob}; border-radius: 4px;">{conv_ventas_cob}%</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv}22; color: {color_conv}; border-radius: 4px;">{conv_ventas}%</td>
             </tr>'''
         
@@ -2474,8 +2474,8 @@ if not df_codigos_carga.empty:
             <td style="padding: 12px; text-align: left; font-weight: 700; font-size: 12px;">TOTAL</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_leads}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_con_cobertura}</td>
-            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total_cob}40; color: white; border-radius: 4px;">{total_conv_ventas_cob}%</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_ventas}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total_cob}40; color: white; border-radius: 4px;">{total_conv_ventas_cob}%</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total}40; color: white; border-radius: 4px;">{total_conv_ventas}%</td>
         </tr>'''
         
