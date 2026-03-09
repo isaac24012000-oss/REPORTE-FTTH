@@ -2387,10 +2387,10 @@ if not df_codigos_carga.empty:
             <tr style="background: linear-gradient(135deg, #0066cc 0%, #00d4ff 100%); color: white;">
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">POS</th>
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">CON COBERTURA</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">VENTAS</th>
-                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">%CONV. VENTAS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">TOTAL DE LEADS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);"># CON COBERTURA</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">TOTAL DE VENTAS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">%CONV. VENTAS FINAL</th>
             </tr>
         </thead>
         <tbody>
