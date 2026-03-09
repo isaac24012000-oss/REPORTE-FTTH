@@ -1189,6 +1189,61 @@ def get_drive_asesor_kpis(asesor, mes_seleccionado="Marzo"):
     }
 
 @st.cache_data(ttl=3600)
+def get_ventas_mes_pasado(asesor, mes_actual="Marzo"):
+    """Obtiene ventas del mes anterior que aún están pendientes"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return pd.DataFrame()
+    
+    # Filtrar por asesor
+    df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
+    df_asesor = df_drive[df_drive['ASESOR'] == asesor.strip()].copy()
+    
+    if df_asesor.empty:
+        return pd.DataFrame()
+    
+    # Obtener mes anterior
+    meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    if mes_actual in meses:
+        idx_actual = meses.index(mes_actual)
+        mes_anterior = meses[idx_actual - 1] if idx_actual > 0 else None
+    else:
+        mes_anterior = None
+    
+    if mes_anterior is None:
+        return pd.DataFrame()
+    
+    # Filtrar por mes anterior
+    df_anterior = df_asesor[df_asesor['MES'] == mes_anterior].copy()
+    
+    if df_anterior.empty:
+        return pd.DataFrame()
+    
+    # Limpiar y ordenar
+    df_anterior['FECHA'] = pd.to_datetime(df_anterior['FECHA'], errors='coerce')
+    df_anterior = df_anterior.sort_values('FECHA')
+    
+    return df_anterior
+
+@st.cache_data(ttl=3600)
+def get_desglose_diario(asesor, mes_seleccionado="Marzo"):
+    """Obtiene desglose de ventas por día del mes actual"""
+    df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
+    
+    if df_asesor.empty:
+        return pd.DataFrame()
+    
+    df_asesor['FECHA'] = pd.to_datetime(df_asesor['FECHA'], errors='coerce')
+    df_asesor['ESTADO'] = df_asesor['ESTADO'].astype(str).str.strip()
+    
+    # Agrupar por día y estado
+    desglose = df_asesor.groupby([df_asesor['FECHA'].dt.date, 'ESTADO']).size().unstack(fill_value=0)
+    desglose['TOTAL'] = desglose.sum(axis=1)
+    
+    return desglose
+
+@st.cache_data(ttl=3600)
 def get_drive_tendencias(asesor, mes_seleccionado="Marzo"):
     """Analiza tendencias de ventas semana a semana"""
     df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
@@ -2892,24 +2947,59 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                 help="Ventas por día promedio"
             )
         
-        # FILA 2: ANÁLISIS COMPORTAMENTAL
-        st.markdown("#### 🎯 Análisis de Comportamiento")
+        # FILA 2: PENDIENTES DEL MES PASADO
+        st.markdown("#### ⏳ Pendientes del Mes Pasado")
         
-        col_timeline, col_stability = st.columns(2)
+        df_mes_pasado = get_ventas_mes_pasado(asesor_seleccionado, mes)
         
-        with col_timeline:
-            st.info(f"**Período Activo:** {kpis['dias_activos']} días")
-            if kpis['fecha_primera_venta']:
-                st.caption(f"Primera venta: {kpis['fecha_primera_venta'].strftime('%d/%m/%Y')}")
-                st.caption(f"Última venta: {kpis['fecha_ultima_venta'].strftime('%d/%m/%Y')}")
+        if not df_mes_pasado.empty:
+            # Resumen de pendientes del mes anterior
+            pendientes_anterior = len(df_mes_pasado[df_mes_pasado['ESTADO'] == 'PENDIENTE'])
+            instaladas_anterior = len(df_mes_pasado[df_mes_pasado['ESTADO'] == 'INSTALADO'])
+            canceladas_anterior = len(df_mes_pasado[df_mes_pasado['ESTADO'] == 'CANCELADO'])
+            total_anterior = len(df_mes_pasado)
+            
+            col_pend1, col_pend2, col_pend3, col_pend4 = st.columns(4)
+            
+            with col_pend1:
+                st.metric("Total", total_anterior)
+            
+            with col_pend2:
+                st.metric("✅ Instaladas", instaladas_anterior)
+            
+            with col_pend3:
+                st.metric("🟡 Pendientes", pendientes_anterior)
+            
+            with col_pend4:
+                st.metric("🔴 Canceladas", canceladas_anterior)
+        else:
+            st.info("No hay registros del mes anterior")
         
-        with col_stability:
-            if kpis['estabilidad_ventas'] < 1:
-                st.success(f"✅ **Ventas Consistentes** - Desv. Std: {kpis['estabilidad_ventas']:.2f}")
-            elif kpis['estabilidad_ventas'] < 2:
-                st.warning(f"⚠️ **Ventas Moderadas** - Desv. Std: {kpis['estabilidad_ventas']:.2f}")
-            else:
-                st.error(f"❌ **Ventas Muy Variable** - Desv. Std: {kpis['estabilidad_ventas']:.2f}")
+        # FILA 2B: DESGLOSE DIARIO DE MARZO
+        st.markdown("#### 📅 Ventas por Día (Este Mes)")
+        
+        df_diario = get_desglose_diario(asesor_seleccionado, mes)
+        
+        if not df_diario.empty:
+            # Formatear para mostrar
+            df_diario_formato = df_diario.copy()
+            df_diario_formato['Fecha'] = df_diario_formato.index.astype(str)
+            df_diario_formato = df_diario_formato[['Fecha', 'TOTAL'] + [col for col in df_diario_formato.columns if col not in ['Fecha', 'TOTAL']]]
+            
+            st.dataframe(
+                df_diario_formato,
+                use_container_width=True,
+                height=300
+            )
+            
+            # Mostrar resumen
+            col_res1, col_res2 = st.columns(2)
+            with col_res1:
+                st.metric("Días con ventas", len(df_diario))
+            with col_res2:
+                st.metric("Promedio por día", f"{df_diario['TOTAL'].mean():.1f}")
+        else:
+            st.info("No hay datos por día para este mes")
         
         # FILA 3: RECOMENDACIONES PERSONALIZADAS
         st.markdown("#### 💡 Recomendaciones Personalizadas")
