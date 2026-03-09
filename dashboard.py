@@ -1100,6 +1100,165 @@ def load_data_codigo_carga(mes_seleccionado=None):
     
     return df_resultado
 
+# ============= ANÁLISIS DETALLADO DEL DRIVE =============
+
+@st.cache_data(ttl=3600)
+def get_drive_history_by_asesor(asesor, mes_seleccionado="Marzo"):
+    """Obtiene historial detallado de transacciones por asesor en el DRIVE"""
+    df_drive = load_drive_data()
+    
+    if df_drive is None or df_drive.empty:
+        return pd.DataFrame()
+    
+    # Filtrar por mes y asesor
+    df_mes = df_drive[df_drive['MES'] == mes_seleccionado].copy() if 'MES' in df_drive.columns else df_drive
+    
+    # Limpiar espacios en la columna CODIGO DE CARGA
+    df_mes['CODIGO DE CARGA'] = df_mes['CODIGO DE CARGA'].astype(str).str.strip()
+    asesor_clean = asesor.strip()
+    
+    df_asesor = df_mes[df_mes['CODIGO DE CARGA'] == asesor_clean].copy()
+    
+    if df_asesor.empty:
+        return pd.DataFrame()
+    
+    # Limpiar fechas
+    df_asesor['FECHA'] = pd.to_datetime(df_asesor['FECHA'], errors='coerce')
+    
+    # Ordenar por fecha
+    df_asesor = df_asesor.sort_values('FECHA')
+    
+    # Agregar número secuencial de venta
+    df_asesor.insert(0, 'VENTA_NUM', range(1, len(df_asesor) + 1))
+    
+    return df_asesor
+
+@st.cache_data(ttl=3600)
+def get_drive_asesor_kpis(asesor, mes_seleccionado="Marzo"):
+    """Calcula KPIs importantes para un asesor en el DRIVE"""
+    df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
+    
+    if df_asesor.empty:
+        return {}
+    
+    # Limpiar columnas
+    df_asesor['ESTADO'] = df_asesor['ESTADO'].astype(str).str.strip()
+    df_asesor['PAGO'] = df_asesor['PAGO'].astype(str).str.strip()
+    df_asesor['FECHA'] = pd.to_datetime(df_asesor['FECHA'], errors='coerce')
+    
+    total_ventas = len(df_asesor)
+    instaladas = len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
+    pendientes = len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
+    canceladas = len(df_asesor[df_asesor['ESTADO'] == 'CANCELADO'])
+    
+    # Tasa de conversión (instaladas / total)
+    tasa_conversion = (instaladas / total_ventas * 100) if total_ventas > 0 else 0
+    
+    # Tasa de cancelación
+    tasa_cancelacion = (canceladas / total_ventas * 100) if total_ventas > 0 else 0
+    
+    # Tiempo promedio entre ventas (en días)
+    fechas_validas = df_asesor['FECHA'].dropna()
+    if len(fechas_validas) > 1:
+        dias_totales = (fechas_validas.max() - fechas_validas.min()).days
+        tiempo_promedio = dias_totales / (len(fechas_validas) - 1) if len(fechas_validas) > 1 else 0
+    else:
+        tiempo_promedio = 0
+    
+    # Velocidad de venta (ventas por día)
+    dias_activos = len(df_asesor['FECHA'].dt.date.unique()) if len(fechas_validas) > 0 else 1
+    velocidad_venta = total_ventas / dias_activos if dias_activos > 0 else 0
+    
+    # Estabilidad (desviación estándar de ventas por día)
+    ventas_por_dia = df_asesor.groupby(df_asesor['FECHA'].dt.date).size()
+    estabilidad = ventas_por_dia.std() if len(ventas_por_dia) > 1 else 0
+    
+    return {
+        'total_ventas': total_ventas,
+        'instaladas': instaladas,
+        'pendientes': pendientes,
+        'canceladas': canceladas,
+        'tasa_conversion': round(tasa_conversion, 1),
+        'tasa_cancelacion': round(tasa_cancelacion, 1),
+        'tiempo_promedio_dias': round(tiempo_promedio, 1),
+        'velocidad_venta': round(velocidad_venta, 2),
+        'dias_activos': dias_activos,
+        'estabilidad_ventas': round(estabilidad, 2),
+        'fecha_primera_venta': fechas_validas.min() if len(fechas_validas) > 0 else None,
+        'fecha_ultima_venta': fechas_validas.max() if len(fechas_validas) > 0 else None,
+    }
+
+@st.cache_data(ttl=3600)
+def get_drive_tendencias(asesor, mes_seleccionado="Marzo"):
+    """Analiza tendencias de ventas semana a semana"""
+    df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
+    
+    if df_asesor.empty:
+        return pd.DataFrame()
+    
+    df_asesor['FECHA'] = pd.to_datetime(df_asesor['FECHA'], errors='coerce')
+    df_asesor['ESTADO'] = df_asesor['ESTADO'].astype(str).str.strip()
+    df_asesor['SEMANA'] = df_asesor['FECHA'].dt.isocalendar().week
+    
+    # Contar por semana y estado
+    tendencias = df_asesor.groupby(['SEMANA', 'ESTADO']).size().unstack(fill_value=0)
+    
+    return tendencias
+
+def get_recomendaciones_asesor(asesor, kpis, mes_seleccionado="Marzo"):
+    """Genera recomendaciones personalizadas basadas en el análisis"""
+    recomendaciones = []
+    
+    if kpis.get('tasa_conversion', 0) < 50:
+        recomendaciones.append({
+            'tipo': 'crítica',
+            'título': '⚠️ Tasa de Conversión Baja',
+            'descripción': f"Su tasa de conversión es {kpis.get('tasa_conversion', 0)}%. Objetivo: aumentar a 80%+",
+            'acción': 'Enfoque en filtrar mejor los leads antes de hacer seguimiento. Calidad > Cantidad'
+        })
+    
+    if kpis.get('tasa_cancelacion', 0) > 30:
+        recomendaciones.append({
+            'tipo': 'crítica',
+            'título': '⚠️ Tasa de Cancelación Alta',
+            'descripción': f"El {kpis.get('tasa_cancelacion', 0)}% de sus ventas se cancelan",
+            'acción': 'Investigar causas de cancelación. ¿Falta de seguimiento? ¿Expectativas no cumplidas?'
+        })
+    
+    if kpis.get('velocidad_venta', 0) < 1:
+        recomendaciones.append({
+            'tipo': 'alta',
+            'título': '📈 Aumentar Velocidad de Venta',
+            'descripción': f"Actualmente {kpis.get('velocidad_venta', 0)} ventas/día. Potencial: 2+ ventas/día",
+            'acción': 'Dedique más tiempo a llamadas y seguimiento. Cree rutinas diarias'
+        })
+    
+    if kpis.get('estabilidad_ventas', 0) > 2:
+        recomendaciones.append({
+            'tipo': 'media',
+            'título': '📊 Variabilidad en Ventas',
+            'descripción': f"Sus ventas varían mucho por día (desv. std: {kpis.get('estabilidad_ventas', 0)})",
+            'acción': 'Implemente una estrategia consistente diaria. Objetivos claros por día'
+        })
+    
+    if kpis.get('pendientes', 0) > 5:
+        recomendaciones.append({
+            'tipo': 'media',
+            'título': '⏳ Muchas Ventas Pendientes',
+            'descripción': f"Tiene {kpis.get('pendientes', 0)} ventas en estado PENDIENTE",
+            'acción': 'Prioricel el seguimiento de pendientes para convertirlas en instaladas'
+        })
+    
+    if len(recomendaciones) == 0:
+        recomendaciones.append({
+            'tipo': 'éxito',
+            'título': '✅ Desempeño Sólido',
+            'descripción': "Sus métricas se ven bien. Continúe con esta tendencia",
+            'acción': 'Mantenga la consistencia y búsque formas de optimizar aún más'
+        })
+    
+    return recomendaciones
+
 # Estilos mejorados con tema moderno y premium
 st.markdown("""
 <style>
@@ -2664,6 +2823,175 @@ if not df_mantra_mes.empty:
 
 else:
     st.warning(f"No hay datos de casos disponibles para {mes}")
+
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+# ============= NUEVA SECCIÓN: ANÁLISIS DETALLADO DEL DRIVE =============
+st.markdown("### 📊 Análisis Detallado del DRIVE por Asesor")
+st.markdown("*Historial de ventas, comportamiento y recomendaciones personalizadas*")
+
+# Obtener lista de asesores del DRIVE para el mes
+df_drive_mes_actual = load_drive_data()
+if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
+    df_drive_mes_actual = df_drive_mes_actual[df_drive_mes_actual['MES'] == mes].copy()
+    df_drive_mes_actual['CODIGO DE CARGA'] = df_drive_mes_actual['CODIGO DE CARGA'].astype(str).str.strip()
+    asesores_drive = sorted(df_drive_mes_actual['CODIGO DE CARGA'].unique())
+    
+    if asesores_drive:
+        # Selector de asesor
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            asesor_seleccionado = st.selectbox(
+                "Selecciona un asesor para análisis detallado:",
+                asesores_drive,
+                key="asesor_drive_analysis"
+            )
+        
+        # Obtener datos del asesor
+        kpis = get_drive_asesor_kpis(asesor_seleccionado, mes)
+        
+        if kpis:
+            # FILA 1: KPIs PRINCIPALES
+            st.markdown("#### 📈 Métricas Clave del Mes")
+            
+            metric_cols = st.columns(5)
+            
+            with metric_cols[0]:
+                st.metric(
+                    "Total Ventas",
+                    int(kpis['total_ventas']),
+                    help="Todas las transacciones registradas"
+                )
+            
+            with metric_cols[1]:
+                st.metric(
+                    "Instaladas",
+                    int(kpis['instaladas']),
+                    delta=f"{kpis['tasa_conversion']:.1f}%",
+                    help="Ventas efectivas"
+                )
+            
+            with metric_cols[2]:
+                color_cancelacion = "🔴" if kpis['tasa_cancelacion'] > 30 else "🟡" if kpis['tasa_cancelacion'] > 15 else "🟢"
+                st.metric(
+                    "Canceladas",
+                    f"{color_cancelacion} {int(kpis['canceladas'])}",
+                    delta=f"-{kpis['tasa_cancelacion']:.1f}%",
+                    help="Ventas que se cancelaron"
+                )
+            
+            with metric_cols[3]:
+                st.metric(
+                    "Pendientes",
+                    int(kpis['pendientes']),
+                    help="Ventas en seguimiento"
+                )
+            
+            with metric_cols[4]:
+                st.metric(
+                    "Velocidad",
+                    f"{kpis['velocidad_venta']:.1f} /día",
+                    help="Ventas por día promedio"
+                )
+            
+            # FILA 2: ANÁLISIS COMPORTAMENTAL
+            st.markdown("#### 🎯 Análisis de Comportamiento")
+            
+            col_timeline, col_stability = st.columns(2)
+            
+            with col_timeline:
+                st.info(f"**Período Activo:** {kpis['dias_activos']} días")
+                if kpis['fecha_primera_venta']:
+                    st.caption(f"Primera venta: {kpis['fecha_primera_venta'].strftime('%d/%m/%Y')}")
+                    st.caption(f"Última venta: {kpis['fecha_ultima_venta'].strftime('%d/%m/%Y')}")
+            
+            with col_stability:
+                if kpis['estabilidad_ventas'] < 1:
+                    st.success(f"✅ **Ventas Consistentes** - Desv. Std: {kpis['estabilidad_ventas']:.2f}")
+                elif kpis['estabilidad_ventas'] < 2:
+                    st.warning(f"⚠️ **Ventas Moderadas** - Desv. Std: {kpis['estabilidad_ventas']:.2f}")
+                else:
+                    st.error(f"❌ **Ventas Muy Variable** - Desv. Std: {kpis['estabilidad_ventas']:.2f}")
+            
+            # FILA 3: RECOMENDACIONES PERSONALIZADAS
+            st.markdown("#### 💡 Recomendaciones Personalizadas")
+            
+            recomendaciones = get_recomendaciones_asesor(asesor_seleccionado, kpis, mes)
+            
+            for rec in recomendaciones:
+                if rec['tipo'] == 'crítica':
+                    st.error(f"**{rec['título']}**\n{rec['descripción']}\n\n✅ {rec['acción']}")
+                elif rec['tipo'] == 'alta':
+                    st.warning(f"**{rec['título']}**\n{rec['descripción']}\n\n✅ {rec['acción']}")
+                elif rec['tipo'] == 'media':
+                    st.info(f"**{rec['título']}**\n{rec['descripción']}\n\n✅ {rec['acción']}")
+                else:
+                    st.success(f"**{rec['título']}**\n{rec['descripción']}\n\n✅ {rec['acción']}")
+            
+            # FILA 4: HISTORIAL DETALLADO
+            st.markdown("#### 📋 Historial de Transacciones")
+            
+            df_historial = get_drive_history_by_asesor(asesor_seleccionado, mes)
+            
+            if not df_historial.empty:
+                # Seleccionar columnas importantes para mostrar
+                cols_mostrar = ['VENTA_NUM', 'FECHA', 'ESTADO', 'PAGO']
+                if 'OBSERVACION' in df_historial.columns:
+                    cols_mostrar.append('OBSERVACION')
+                
+                # Asegurarse de que solo las columnas existentes se muestren
+                cols_mostrar = [col for col in cols_mostrar if col in df_historial.columns]
+                
+                # Formatear la tabla
+                df_mostrar = df_historial[cols_mostrar].copy()
+                
+                # Aplicar colores según estado
+                def color_estado(estado):
+                    if estado == 'INSTALADO':
+                        return '🟢 INSTALADO'
+                    elif estado == 'CANCELADO':
+                        return '🔴 CANCELADO'
+                    elif estado == 'PENDIENTE':
+                        return '🟡 PENDIENTE'
+                    else:
+                        return estado
+                
+                df_mostrar['ESTADO'] = df_mostrar['ESTADO'].apply(color_estado)
+                
+                st.dataframe(
+                    df_mostrar,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300
+                )
+                
+                st.caption(f"Total de registros: {len(df_historial)}")
+            
+            # FILA 5: TENDENCIAS SEMANALES
+            st.markdown("#### 📆 Tendencias por Semana")
+            
+            tendencias = get_drive_tendencias(asesor_seleccionado, mes)
+            
+            if not tendencias.empty:
+                col_chart, col_table = st.columns([2, 1])
+                
+                with col_chart:
+                    st.bar_chart(tendencias, use_container_width=True)
+                
+                with col_table:
+                    st.dataframe(tendencias, use_container_width=True)
+            else:
+                st.info("No hay datos de tendencias para este asesor")
+        
+        else:
+            st.warning(f"No hay datos del DRIVE para {asesor_seleccionado} en {mes}")
+    
+    else:
+        st.info(f"No hay asesores con registros en el DRIVE para {mes}")
+
+else:
+    st.warning("No hay datos de DRIVE disponibles")
 
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
