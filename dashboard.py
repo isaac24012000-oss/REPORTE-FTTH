@@ -1244,6 +1244,34 @@ def get_desglose_diario(asesor, mes_seleccionado="Marzo"):
     return desglose
 
 @st.cache_data(ttl=3600)
+def get_crecimiento_ventas(asesor, mes_seleccionado="Marzo"):
+    """Obtiene el crecimiento acumulado de ventas por día"""
+    df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
+    
+    if df_asesor.empty:
+        return pd.DataFrame()
+    
+    df_asesor['FECHA'] = pd.to_datetime(df_asesor['FECHA'], errors='coerce')
+    df_asesor['ESTADO'] = df_asesor['ESTADO'].astype(str).str.strip()
+    
+    # Contar ventas diarias por tipo
+    ventas_diarias = df_asesor.groupby([df_asesor['FECHA'].dt.date, 'ESTADO']).size().unstack(fill_value=0)
+    
+    # Calcular acumuladas
+    crecimiento = pd.DataFrame()
+    crecimiento['Fecha'] = ventas_diarias.index
+    crecimiento['TOTAL'] = ventas_diarias.get('INSTALADO', 0).values + ventas_diarias.get('CANCELADO', 0).values + ventas_diarias.get('PENDIENTE', 0).values
+    crecimiento['Instaladas'] = ventas_diarias.get('INSTALADO', 0).values
+    crecimiento['Canceladas'] = ventas_diarias.get('CANCELADO', 0).values
+    crecimiento['Pendientes'] = ventas_diarias.get('PENDIENTE', 0).values
+    
+    # Calcular acumuladas
+    crecimiento['Total Acumulado'] = crecimiento['TOTAL'].cumsum()
+    crecimiento['Instaladas Acumuladas'] = crecimiento['Instaladas'].cumsum()
+    
+    return crecimiento
+
+@st.cache_data(ttl=3600)
 def get_drive_tendencias(asesor, mes_seleccionado="Marzo"):
     """Analiza tendencias de ventas semana a semana"""
     df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
@@ -3041,6 +3069,65 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                 st.metric("Promedio por día", f"{df_diario['TOTAL'].mean():.1f}")
         else:
             st.info("No hay datos por día para este mes")
+        
+        # FILA 2C: GRÁFICA DE CRECIMIENTO DE VENTAS
+        st.markdown("#### 📈 Crecimiento de Ventas por Fecha")
+        
+        df_crecimiento = get_crecimiento_ventas(asesor_seleccionado, mes)
+        
+        if not df_crecimiento.empty:
+            # Gráfico de línea de crecimiento acumulado
+            fig_crecimiento = go.Figure()
+            
+            # Línea de total acumulado
+            fig_crecimiento.add_trace(go.Scatter(
+                x=df_crecimiento['Fecha'],
+                y=df_crecimiento['Total Acumulado'],
+                mode='lines+markers',
+                name='Total Acumulado',
+                line=dict(color='#1976d2', width=3),
+                marker=dict(size=8)
+            ))
+            
+            # Línea de instaladas acumuladas
+            fig_crecimiento.add_trace(go.Scatter(
+                x=df_crecimiento['Fecha'],
+                y=df_crecimiento['Instaladas Acumuladas'],
+                mode='lines+markers',
+                name='Instaladas Acumuladas',
+                line=dict(color='#4caf50', width=2, dash='dash'),
+                marker=dict(size=6)
+            ))
+            
+            fig_crecimiento.update_layout(
+                title=f"Crecimiento de Ventas - {mes}",
+                xaxis_title="Fecha",
+                yaxis_title="Cantidad Acumulada",
+                height=400,
+                hovermode='x unified',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray')
+            )
+            
+            st.plotly_chart(fig_crecimiento, use_container_width=True)
+            
+            # Mostrar tasa de crecimiento
+            if len(df_crecimiento) > 1:
+                inicio = df_crecimiento['Total Acumulado'].iloc[0]
+                fin = df_crecimiento['Total Acumulado'].iloc[-1]
+                crecimiento_total = fin - inicio
+                tasa_crecimiento = ((fin - inicio) / inicio * 100) if inicio > 0 else 0
+                
+                col_crec1, col_crec2, col_crec3 = st.columns(3)
+                with col_crec1:
+                    st.metric("Ventas Iniciales", int(inicio))
+                with col_crec2:
+                    st.metric("Ventas Finales", int(fin))
+                with col_crec3:
+                    st.metric("Crecimiento", f"+{crecimiento_total:.0f} ({tasa_crecimiento:.1f}%)")
+        else:
+            st.info("No hay datos de crecimiento para este mes")
         
         # FILA 3: RECOMENDACIONES PERSONALIZADAS
         st.markdown("#### 💡 Recomendaciones Personalizadas")
