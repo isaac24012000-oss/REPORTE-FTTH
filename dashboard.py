@@ -3112,20 +3112,27 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
             
             st.plotly_chart(fig_crecimiento, use_container_width=True)
             
-            # Mostrar tasa de crecimiento
+            # Mostrar indicadores de crecimiento
             if len(df_crecimiento) > 1:
                 inicio = df_crecimiento['Total Acumulado'].iloc[0]
                 fin = df_crecimiento['Total Acumulado'].iloc[-1]
                 crecimiento_total = fin - inicio
-                tasa_crecimiento = ((fin - inicio) / inicio * 100) if inicio > 0 else 0
+                dias_trabajados = len(df_crecimiento)
+                crecimiento_promedio_diario = crecimiento_total / dias_trabajados if dias_trabajados > 0 else 0
+                
+                # Calcular velocidad reciente (últimos 3 días)
+                if len(df_crecimiento) >= 3:
+                    velocidad_reciente = df_crecimiento['TOTAL'].iloc[-3:].mean()
+                else:
+                    velocidad_reciente = df_crecimiento['TOTAL'].mean()
                 
                 col_crec1, col_crec2, col_crec3 = st.columns(3)
                 with col_crec1:
-                    st.metric("Ventas Iniciales", int(inicio))
+                    st.metric("Crecimiento Total", f"+{crecimiento_total:.0f} ventas")
                 with col_crec2:
-                    st.metric("Ventas Finales", int(fin))
+                    st.metric("Promedio Diario", f"{crecimiento_promedio_diario:.1f} ventas/día")
                 with col_crec3:
-                    st.metric("Crecimiento", f"+{crecimiento_total:.0f} ({tasa_crecimiento:.1f}%)")
+                    st.metric("Velocidad Reciente", f"{velocidad_reciente:.1f} ventas/día")
         else:
             st.info("No hay datos de crecimiento para este mes")
         
