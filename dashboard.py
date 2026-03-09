@@ -1044,6 +1044,11 @@ def load_data_codigo_carga(mes_seleccionado=None):
         # Leads desde MANTRA
         leads = leads_dict.get(agente, 0)
         
+        # Con cobertura desde MANTRA (NIVEL 2 = 'Con Cobertura')
+        df_agente_mantra = df_mantra_mes[df_mantra_mes['Agente'] == agente]
+        df_agente_mantra['NIVEL 2'] = df_agente_mantra['NIVEL 2'].astype(str).str.strip()
+        con_cobertura = len(df_agente_mantra[df_agente_mantra['NIVEL 2'] == 'Con Cobertura'])
+        
         # Inicializar contadores
         ventas = 0
         pendientes = 0
@@ -1062,6 +1067,7 @@ def load_data_codigo_carga(mes_seleccionado=None):
         grupos.append({
             'CODIGO_CARGA': agente,
             'LEADS': leads,
+            'CON_COBERTURA': con_cobertura,
             'VENTAS': ventas,
             'PENDIENTES': pendientes
         })
@@ -2382,6 +2388,7 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">POS</th>
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">LEADS</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">CON COBERTURA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">%CONV. VENTAS</th>
             </tr>
@@ -2394,6 +2401,7 @@ if not df_codigos_carga.empty:
             pos = int(row['POS'])
             codigo = row['CODIGO_CARGA']
             leads = int(row['LEADS'])
+            con_cobertura = int(row['CON_COBERTURA'])
             ventas = int(row['VENTAS'])
             conv_ventas = int(row['CONV_VENTAS'])
             
@@ -2415,12 +2423,14 @@ if not df_codigos_carga.empty:
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{con_cobertura}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv}22; color: {color_conv}; border-radius: 4px;">{conv_ventas}%</td>
             </tr>'''
         
         # Calcular y agregar fila de TOTALES
         total_leads = df_datos['LEADS'].sum()
+        total_con_cobertura = df_datos['CON_COBERTURA'].sum()
         total_ventas = df_datos['VENTAS'].sum()
         total_conv_ventas = int((total_ventas / total_leads * 100)) if total_leads > 0 else 0
         
@@ -2436,6 +2446,7 @@ if not df_codigos_carga.empty:
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;"></td>
             <td style="padding: 12px; text-align: left; font-weight: 700; font-size: 12px;">TOTAL</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_leads}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_con_cobertura}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_ventas}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total}40; color: white; border-radius: 4px;">{total_conv_ventas}%</td>
         </tr>'''
