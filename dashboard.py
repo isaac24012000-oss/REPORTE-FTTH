@@ -1077,8 +1077,15 @@ def load_data_codigo_carga(mes_seleccionado=None):
     
     df_resultado = pd.DataFrame(grupos)
     
-    # Calcular % Conversión de Ventas: (VENTAS / LEADS) * 100
+    # Calcular % Conversión de Ventas respecto a Leads: (VENTAS / LEADS) * 100
     df_resultado['CONV_VENTAS'] = (df_resultado['VENTAS'] / df_resultado['LEADS'] * 100).round(0).astype(int)
+    
+    # Calcular % Conversión de Ventas respecto a Con Cobertura: (VENTAS / CON_COBERTURA) * 100
+    # Evitar división por cero
+    df_resultado['CONV_VENTAS_COB'] = df_resultado.apply(
+        lambda row: int((row['VENTAS'] / row['CON_COBERTURA'] * 100)) if row['CON_COBERTURA'] > 0 else 0,
+        axis=1
+    )
     
     # Calcular ventas necesarias para llegar al 10%: (LEADS * 0.10) - VENTAS
     df_resultado['VENTAS_FALTA_10'] = ((df_resultado['LEADS'] * 0.10) - df_resultado['VENTAS']).round(0).astype(int)
@@ -2389,6 +2396,7 @@ if not df_codigos_carga.empty:
                 <th style="padding: 14px; text-align: left; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2); min-width: 180px;">CODIGO CARGA</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">TOTAL DE LEADS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);"># CON COBERTURA</th>
+                <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">%CONV. VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px; border-right: 1px solid rgba(255,255,255,0.2);">TOTAL DE VENTAS</th>
                 <th style="padding: 14px; text-align: center; font-weight: 700; font-size: 12px;">%CONV. VENTAS FINAL</th>
             </tr>
@@ -2404,6 +2412,7 @@ if not df_codigos_carga.empty:
             con_cobertura = int(row['CON_COBERTURA'])
             ventas = int(row['VENTAS'])
             conv_ventas = int(row['CONV_VENTAS'])
+            conv_ventas_cob = int(row['CONV_VENTAS_COB'])
             
             # Determinar color para ventas
             if ventas > 0:
@@ -2411,7 +2420,7 @@ if not df_codigos_carga.empty:
             else:
                 color_ventas = '#64748b'  # Gris
             
-            # Determinar color para conversión
+            # Determinar color para conversión respecto a leads
             if conv_ventas >= 10:
                 color_conv = '#10b981'  # Verde
             elif conv_ventas == 9:
@@ -2419,11 +2428,20 @@ if not df_codigos_carga.empty:
             else:
                 color_conv = '#ef4444'  # Rojo
             
+            # Determinar color para conversión respecto a con cobertura
+            if conv_ventas_cob >= 10:
+                color_conv_cob = '#10b981'  # Verde
+            elif conv_ventas_cob == 9:
+                color_conv_cob = '#f59e0b'  # Naranja
+            else:
+                color_conv_cob = '#ef4444'  # Rojo
+            
             html += f'''<tr style="background-color: {color_fila}; border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: #0066cc;">#{pos}</td>
                 <td style="padding: 12px; text-align: left; font-weight: 500; font-size: 12px;">{codigo}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{leads}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px;">{con_cobertura}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv_cob}22; color: {color_conv_cob}; border-radius: 4px;">{conv_ventas_cob}%</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; color: {color_ventas};">{ventas}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; font-size: 12px; background-color: {color_conv}22; color: {color_conv}; border-radius: 4px;">{conv_ventas}%</td>
             </tr>'''
@@ -2432,9 +2450,18 @@ if not df_codigos_carga.empty:
         total_leads = df_datos['LEADS'].sum()
         total_con_cobertura = df_datos['CON_COBERTURA'].sum()
         total_ventas = df_datos['VENTAS'].sum()
+        total_conv_ventas_cob = int((total_ventas / total_con_cobertura * 100)) if total_con_cobertura > 0 else 0
         total_conv_ventas = int((total_ventas / total_leads * 100)) if total_leads > 0 else 0
         
-        # Determinar color para conversión total
+        # Determinar color para conversión total respecto a con cobertura
+        if total_conv_ventas_cob >= 10:
+            color_conv_total_cob = '#10b981'  # Verde
+        elif total_conv_ventas_cob == 9:
+            color_conv_total_cob = '#f59e0b'  # Naranja
+        else:
+            color_conv_total_cob = '#ef4444'  # Rojo
+        
+        # Determinar color para conversión total respecto a leads
         if total_conv_ventas >= 10:
             color_conv_total = '#10b981'  # Verde
         elif total_conv_ventas == 9:
@@ -2447,6 +2474,7 @@ if not df_codigos_carga.empty:
             <td style="padding: 12px; text-align: left; font-weight: 700; font-size: 12px;">TOTAL</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_leads}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_con_cobertura}</td>
+            <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total_cob}40; color: white; border-radius: 4px;">{total_conv_ventas_cob}%</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px;">{total_ventas}</td>
             <td style="padding: 12px; text-align: center; font-weight: 700; font-size: 12px; background-color: {color_conv_total}40; color: white; border-radius: 4px;">{total_conv_ventas}%</td>
         </tr>'''
