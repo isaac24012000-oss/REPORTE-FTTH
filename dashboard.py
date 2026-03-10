@@ -1260,10 +1260,16 @@ def get_crecimiento_ventas(asesor, mes_seleccionado="Marzo"):
     # Calcular acumuladas
     crecimiento = pd.DataFrame()
     crecimiento['Fecha'] = ventas_diarias.index
-    crecimiento['TOTAL'] = ventas_diarias.get('INSTALADO', 0).values + ventas_diarias.get('CANCELADO', 0).values + ventas_diarias.get('PENDIENTE', 0).values
-    crecimiento['Instaladas'] = ventas_diarias.get('INSTALADO', 0).values
-    crecimiento['Canceladas'] = ventas_diarias.get('CANCELADO', 0).values
-    crecimiento['Pendientes'] = ventas_diarias.get('PENDIENTE', 0).values
+    
+    # Usar columnas si existen, sino 0
+    instaladas = ventas_diarias['INSTALADO'].values if 'INSTALADO' in ventas_diarias.columns else np.zeros(len(ventas_diarias))
+    canceladas = ventas_diarias['CANCELADO'].values if 'CANCELADO' in ventas_diarias.columns else np.zeros(len(ventas_diarias))
+    pendientes = ventas_diarias['PENDIENTE'].values if 'PENDIENTE' in ventas_diarias.columns else np.zeros(len(ventas_diarias))
+    
+    crecimiento['TOTAL'] = instaladas + canceladas + pendientes
+    crecimiento['Instaladas'] = instaladas
+    crecimiento['Canceladas'] = canceladas
+    crecimiento['Pendientes'] = pendientes
     
     # Calcular acumuladas
     crecimiento['Total Acumulado'] = crecimiento['TOTAL'].cumsum()
