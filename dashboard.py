@@ -659,16 +659,16 @@ def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
     if df_drive is None or df_drive.empty:
         return 0
     
-    # Limpiar espacios en los códigos de carga
-    df_drive['CODIGO DE CARGA'] = df_drive['CODIGO DE CARGA'].astype(str).str.strip()
+    # Limpiar espacios en los nombres de asesor
+    df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
     asesor = asesor.strip()
     
     # Obtener nombres alternativos
     nombres_alternativos = get_nombres_alternativos(asesor)
     
-    # Filtrar por mes y código de carga (probando múltiples nombres)
+    # Filtrar por mes y asesor (probando múltiples nombres)
     if 'MES' in df_drive.columns:
-        df_mes_asesor = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['CODIGO DE CARGA'].isin(nombres_alternativos))]
+        df_mes_asesor = df_drive[(df_drive['MES'] == mes_seleccionado) & (df_drive['ASESOR'].isin(nombres_alternativos))]
     else:
         mes_numeros = {
             'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
@@ -679,7 +679,7 @@ def get_pendientes_asesor_mes(asesor, mes_seleccionado="Enero"):
         if mes_num is None:
             return 0
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
-        df_mes_asesor = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['CODIGO DE CARGA'].isin(nombres_alternativos))]
+        df_mes_asesor = df_drive[(df_drive['FECHA'].dt.month == mes_num) & (df_drive['ASESOR'].isin(nombres_alternativos))]
     
     # Contar PENDIENTE
     df_mes_asesor['ESTADO'] = df_mes_asesor['ESTADO'].astype(str).str.strip()
@@ -864,7 +864,7 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
         return {}
     
     # Extraer columnas necesarias
-    df_drive = df_drive[['FECHA', 'MES', 'CODIGO DE CARGA', 'ESTADO', 'PAGO']].copy()
+    df_drive = df_drive[['FECHA', 'MES', 'ASESOR', 'ESTADO', 'PAGO']].copy()
     
     # Filtrar por mes usando columna MES si está disponible
     if mes_nombre and 'MES' in df_drive.columns:
@@ -874,16 +874,16 @@ def calculate_drive_metrics(metas_dict, mes_filtro=None, mes_nombre=None):
         df_drive['FECHA'] = pd.to_datetime(df_drive['FECHA'], errors='coerce')
         df_drive = df_drive[df_drive['FECHA'].dt.month == mes_filtro]
     
-    # Contar INSTALADOS por agente (solo INSTALADO, sin PENDIENTE)
+    # Contar INSTALADOS por asesor (solo INSTALADO, sin PENDIENTE)
     df_drive_temp = df_drive.copy()
     df_drive_temp['ESTADO'] = df_drive_temp['ESTADO'].astype(str).str.strip()
     
     # Solo INSTALADO
     df_instalados = df_drive_temp[df_drive_temp['ESTADO'] == 'INSTALADO']
-    instalados_por_asesor = df_instalados.groupby('CODIGO DE CARGA').size()
+    instalados_por_asesor = df_instalados.groupby('ASESOR').size()
     
-    # Contar CANCELADOS por agente
-    cancelados_por_asesor = df_drive[df_drive['ESTADO'] == 'CANCELADO'].groupby('CODIGO DE CARGA').size()
+    # Contar CANCELADOS por asesor
+    cancelados_por_asesor = df_drive[df_drive['ESTADO'] == 'CANCELADO'].groupby('ASESOR').size()
     
     # Calcular métricas
     metricas = {}
@@ -918,13 +918,13 @@ def load_data(mes_seleccionado=None):
         # Filtrar por el mes seleccionado
         df_mes_metas = df_lista[df_lista['Mes'] == mes_seleccionado].copy()
         
-        # Limpiar espacios en blanco de Codigo de carga y convertir Meta a numérico
-        df_mes_metas['Codigo de carga'] = df_mes_metas['Codigo de carga'].astype(str).str.strip()
+        # Limpiar espacios en blanco de Asesor y convertir Meta a numérico
+        df_mes_metas['Asesor'] = df_mes_metas['Asesor'].astype(str).str.strip()
         df_mes_metas['Meta'] = pd.to_numeric(df_mes_metas['Meta'], errors='coerce').fillna(0)
         
-        # Crear diccionario {Codigo de carga: Meta} SOLO con los agentes activos en este mes
+        # Crear diccionario {Asesor: Meta} SOLO con los asesores activos en este mes
         for idx, row in df_mes_metas.iterrows():
-            metas_dict[row['Codigo de carga']] = int(row['Meta'])
+            metas_dict[row['Asesor']] = int(row['Meta'])
     
     # Si no hay datos para el mes en LISTA, retornar vacío
     if not metas_dict:
@@ -965,7 +965,7 @@ def load_data(mes_seleccionado=None):
             canceladas.append(0)
     
     data = {
-        'Codigo de carga': empleados,
+        'Asesor': empleados,
         'Meta': metas,
         'Instaladas': instaladas,
         'Canceladas': canceladas,
@@ -1104,20 +1104,20 @@ def load_data_codigo_carga(mes_seleccionado=None):
 
 @st.cache_data(ttl=3600)
 def get_drive_history_by_asesor(asesor, mes_seleccionado="Marzo"):
-    """Obtiene historial detallado de transacciones por código de carga en el DRIVE"""
+    """Obtiene historial detallado de transacciones por asesor en el DRIVE"""
     df_drive = load_drive_data()
     
     if df_drive is None or df_drive.empty:
         return pd.DataFrame()
     
-    # Filtrar por mes y código de carga
+    # Filtrar por mes y asesor
     df_mes = df_drive[df_drive['MES'] == mes_seleccionado].copy() if 'MES' in df_drive.columns else df_drive
     
-    # Limpiar espacios en la columna CODIGO DE CARGA
-    df_mes['CODIGO DE CARGA'] = df_mes['CODIGO DE CARGA'].astype(str).str.strip()
+    # Limpiar espacios en la columna ASESOR
+    df_mes['ASESOR'] = df_mes['ASESOR'].astype(str).str.strip()
     asesor_clean = asesor.strip()
     
-    df_asesor = df_mes[df_mes['CODIGO DE CARGA'] == asesor_clean].copy()
+    df_asesor = df_mes[df_mes['ASESOR'] == asesor_clean].copy()
     
     if df_asesor.empty:
         return pd.DataFrame()
@@ -1196,8 +1196,8 @@ def get_ventas_mes_pasado(asesor, mes_actual="Marzo"):
     if df_drive is None or df_drive.empty:
         return pd.DataFrame()
     
-    # Filtrar por código de carga
-    df_drive['CODIGO DE CARGA'] = df_drive['CODIGO DE CARGA'].astype(str).str.strip()
+    # Filtrar por asesor
+    df_drive['ASESOR'] = df_drive['ASESOR'].astype(str).str.strip()
     df_asesor = df_drive[df_drive['ASESOR'] == asesor.strip()].copy()
     
     if df_asesor.empty:
@@ -1824,8 +1824,8 @@ st.markdown(f"""
 df = load_data(mes)
 
 with col_filtros[1]:
-    opciones_asesores = ["Todos"] + sorted(df['Codigo de carga'].unique())
-    asesor_seleccionado = st.selectbox("👤 Filtrar por Código de Carga", opciones_asesores)
+    opciones_asesores = ["Todos"] + sorted(df['Asesor'].unique())
+    asesor_seleccionado = st.selectbox("👤 Filtrar por Asesor", opciones_asesores)
 
 vista = "Completa"
 
@@ -1971,7 +1971,7 @@ col1, col2, col3, col4, col5, col6, col7 = st.columns(7, gap="small")
 
 if asesor_seleccionado == "Todos":
     # Preparar datos según vista
-    df_vista = df[['Codigo de carga', 'Cumplimiento']].copy()
+    df_vista = df[['Asesor', 'Cumplimiento']].copy()
     
     if vista == "Top 5":
         df_vista = df_vista.nlargest(5, 'Cumplimiento')
@@ -1979,7 +1979,7 @@ if asesor_seleccionado == "Todos":
         df_vista = df_vista.nsmallest(5, 'Cumplimiento')
     
     # Obtener asesores en la vista
-    asesores_vista = df_vista['Codigo de carga'].tolist()
+    asesores_vista = df_vista['Asesor'].tolist()
     
     # Obtener ventas totales, efectividad y cumplimiento total del mes actual desde DRIVE
     # SIN filtrar por asesores - mostrar TOTALES de TODOS
@@ -2043,7 +2043,7 @@ if asesor_seleccionado == "Todos":
         (f"{cumplimiento_total}%", "🎯 Cumplimiento", col7),
     ]
 else:
-    asesor_data = df[df['Codigo de carga'] == asesor_seleccionado].iloc[0]
+    asesor_data = df[df['Asesor'] == asesor_seleccionado].iloc[0]
     cumpl_val = int(asesor_data['Cumplimiento'])
     efect_val = int(asesor_data['Efectividad'])
     instaladas_asesor = int(asesor_data['Instaladas'])
@@ -2078,15 +2078,15 @@ col1, col2, col3 = st.columns([0.8, 1.6, 1.6], gap="medium")
 # Columna 1: Meta Mensual
 with col1:
     st.markdown('<div class="chart-title">📈 Meta Mensual</div>', unsafe_allow_html=True)
-    tabla_meta = df[['Codigo de carga', 'Meta']].copy()
+    tabla_meta = df[['Asesor', 'Meta']].copy()
     tabla_meta = tabla_meta.sort_values('Meta', ascending=False).reset_index(drop=True)
     tabla_meta.index = tabla_meta.index + 1
     
     # Crear HTML para la tabla personalizada
-    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Código de Carga</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
+    html_tabla = '<div class="meta-tabla" style="width: auto; max-width: none;"><table><thead><tr><th>Pos</th><th>Asesor</th><th style="text-align: center;">Meta</th></tr></thead><tbody>'
     
     for idx, row in tabla_meta.iterrows():
-        asesor = row['Codigo de carga']
+        asesor = row['Asesor']
         meta = int(row['Meta'])
         html_tabla += f'<tr><td style="font-weight: 700; text-align: center; color: #0066cc;">#{idx}</td><td style="font-weight: 600;">{asesor}</td><td style="text-align: center;"><div class="meta-valor">{meta}</div></td></tr>'
     
@@ -2118,7 +2118,7 @@ with col2:
     
     fig_cumpl = go.Figure()
     fig_cumpl.add_trace(go.Bar(
-        y=df_sorted['Codigo de carga'],
+        y=df_sorted['Asesor'],
         x=df_sorted['Cumplimiento'],
         orientation='h',
         marker=dict(
@@ -2165,7 +2165,7 @@ with col3:
     
     fig_eff = go.Figure()
     fig_eff.add_trace(go.Bar(
-        y=df_sorted_eff['Codigo de carga'],
+        y=df_sorted_eff['Asesor'],
         x=df_sorted_eff['Efectividad'],
         orientation='h',
         marker=dict(
@@ -2339,23 +2339,23 @@ with tab1:
             if df_lista is None or df_drive is None:
                 return None, None
             
-            # Preparar LISTA - limpiar espacios en Codigo de carga y convertir Meta a numérico
+            # Preparar LISTA - limpiar espacios en Asesor y convertir Meta a numérico
             df_lista_clean = df_lista.copy()
-            df_lista_clean['Codigo de carga'] = df_lista_clean['Codigo de carga'].astype(str).str.strip()
+            df_lista_clean['Asesor'] = df_lista_clean['Asesor'].astype(str).str.strip()
             df_lista_clean['Meta'] = pd.to_numeric(df_lista_clean['Meta'], errors='coerce').fillna(0)
             
             # Preparar DRIVE
             df_drive_clean = df_drive.copy()
-            df_drive_clean['CODIGO DE CARGA'] = df_drive_clean['CODIGO DE CARGA'].astype(str).str.strip()
+            df_drive_clean['ASESOR'] = df_drive_clean['ASESOR'].astype(str).str.strip()
             df_drive_clean['ESTADO'] = df_drive_clean['ESTADO'].astype(str).str.strip()
             df_mes_drive = df_drive_clean[df_drive_clean['MES'] == mes_sel]
             
             # Obtener datos de LISTA
             df_mes_lista = df_lista_clean[df_lista_clean['Mes'] == mes_sel]
             
-            # Clasificar agentes por horario: FULL TIME son meta 60 o meta 45, resto es PART TIME
-            full_time = df_mes_lista[(df_mes_lista['Meta'] == 60) | (df_mes_lista['Meta'] == 45)]['Codigo de carga'].tolist()
-            part_time = df_mes_lista[(df_mes_lista['Meta'] != 60) & (df_mes_lista['Meta'] != 45)]['Codigo de carga'].tolist()
+            # Clasificar asesores por horario: FULL TIME son meta 60 o meta 45, resto es PART TIME
+            full_time = df_mes_lista[(df_mes_lista['Meta'] == 60) | (df_mes_lista['Meta'] == 45)]['Asesor'].tolist()
+            part_time = df_mes_lista[(df_mes_lista['Meta'] != 60) & (df_mes_lista['Meta'] != 45)]['Asesor'].tolist()
             
             def procesar_horario(lista_asesoras):
                 datos_tabla = []
@@ -2365,12 +2365,12 @@ with tab1:
                 
                 for idx, asesor in enumerate(lista_asesoras, 1):
                     # Meta
-                    meta = df_mes_lista[df_mes_lista['Codigo de carga'] == asesor]['Meta'].sum()
+                    meta = df_mes_lista[df_mes_lista['Asesor'] == asesor]['Meta'].sum()
                     if meta == 0:
                         meta = 0
                     
                     # Instalado y Pendiente
-                    df_asesor = df_mes_drive[df_mes_drive['CODIGO DE CARGA'] == asesor]
+                    df_asesor = df_mes_drive[df_mes_drive['ASESOR'] == asesor]
                     instalado = len(df_asesor[df_asesor['ESTADO'] == 'INSTALADO'])
                     pendiente = len(df_asesor[df_asesor['ESTADO'] == 'PENDIENTE'])
                     
@@ -2564,7 +2564,7 @@ criterio_orden = st.selectbox(
     key="criterio_orden"
 )
 
-df_detail = df[['Codigo de carga', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'Efectividad']].copy()
+df_detail = df[['Asesor', 'Meta', 'Instaladas', 'Canceladas', 'Cumplimiento', 'Efectividad']].copy()
 df_detail['Cumpl%'] = df_detail['Cumplimiento'].astype(str) + '%'
 df_detail['Efect%'] = df_detail['Efectividad'].astype(str) + '%'
 
@@ -2577,7 +2577,7 @@ mes_actual = meses_nombres[datetime.now().month]
 # Solo agregar columna de Pendientes si el mes seleccionado es el mes actual
 if mes == mes_actual:
     pendientes_list = []
-    for asesor in df_detail['Codigo de carga']:
+    for asesor in df_detail['Asesor']:
         pendientes = get_pendientes_asesor_mes(asesor, mes)
         pendientes_list.append(pendientes)
     df_detail['Pendientes'] = pendientes_list
@@ -2585,7 +2585,7 @@ if mes == mes_actual:
 # Agregar columnas de Leads y Con Cobertura
 leads_list = []
 con_cobertura_list = []
-for asesor in df_detail['Codigo de carga']:
+for asesor in df_detail['Asesor']:
     leads = get_leads_asesor_mes(asesor, mes)
     con_cobertura = get_con_cobertura_asesor_mes(asesor, mes)
     leads_list.append(leads)
@@ -2596,7 +2596,7 @@ df_detail['Con Cobertura'] = con_cobertura_list
 # Separar en Full Time (meta >= 55) y Part Time (meta < 55)
 # Excepción: CARLACA, ISABEL y LAURA son FULL TIME aunque tengan meta 45
 asesoras_fulltime_especial = ['ZIM_CARLACA_VTP', 'ZIM_ISABELPF_VTP', 'ZIM_LAURAVS_VTP']
-condicion_fulltime = (df_detail['Meta'] >= 55) | (df_detail['Codigo de carga'].isin(asesoras_fulltime_especial))
+condicion_fulltime = (df_detail['Meta'] >= 55) | (df_detail['Asesor'].isin(asesoras_fulltime_especial))
 df_fulltime = df_detail[condicion_fulltime].copy()
 df_parttime = df_detail[~condicion_fulltime].copy()
 
@@ -2988,8 +2988,8 @@ st.markdown("*Historial de ventas, comportamiento y recomendaciones personalizad
 df_drive_mes_actual = load_drive_data()
 if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
     df_drive_mes_actual = df_drive_mes_actual[df_drive_mes_actual['MES'] == mes].copy()
-    df_drive_mes_actual['CODIGO DE CARGA'] = df_drive_mes_actual['CODIGO DE CARGA'].astype(str).str.strip()
-    asesores_drive = sorted(df_drive_mes_actual['CODIGO DE CARGA'].unique())
+    df_drive_mes_actual['ASESOR'] = df_drive_mes_actual['ASESOR'].astype(str).str.strip()
+    asesores_drive = sorted(df_drive_mes_actual['ASESOR'].unique())
     col1, col2 = st.columns([3, 1])
     
     with col1:
