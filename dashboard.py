@@ -1245,7 +1245,7 @@ def get_desglose_diario(asesor, mes_seleccionado="Marzo"):
 
 @st.cache_data(ttl=3600)
 def get_crecimiento_ventas(asesor, mes_seleccionado="Marzo"):
-    """Obtiene el crecimiento acumulado de ventas por día"""
+    """Obtiene el crecimiento acumulado de ventas por día con promedio"""
     df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
     
     if df_asesor.empty:
@@ -1275,11 +1275,18 @@ def get_crecimiento_ventas(asesor, mes_seleccionado="Marzo"):
     crecimiento['Total Acumulado'] = crecimiento['TOTAL'].cumsum()
     crecimiento['Instaladas Acumuladas'] = crecimiento['Instaladas'].cumsum()
     
+    # Calcular promedio diario
+    promedio_diario = crecimiento['TOTAL'].mean()
+    crecimiento['Promedio'] = promedio_diario
+    crecimiento['Estado_Promedio'] = crecimiento['TOTAL'].apply(
+        lambda x: 'Arriba del Promedio' if x >= promedio_diario else 'Bajo el Promedio'
+    )
+    
     return crecimiento
 
 @st.cache_data(ttl=3600)
 def get_crecimiento_ventas_semanal(asesor, mes_seleccionado="Marzo"):
-    """Obtiene el crecimiento acumulado agrupado por semana (DO-LU-MA-MI-JU-VI-SA)"""
+    """Obtiene el crecimiento acumulado agrupado por semana (DO-LU-MA-MI-JU-VI-SA) con promedio"""
     df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
     
     if df_asesor.empty:
@@ -1325,6 +1332,13 @@ def get_crecimiento_ventas_semanal(asesor, mes_seleccionado="Marzo"):
     # Calcular acumuladas
     crecimiento_semanal['Total Acumulado'] = crecimiento_semanal['TOTAL'].cumsum()
     crecimiento_semanal['Instaladas Acumuladas'] = crecimiento_semanal['Instaladas'].cumsum()
+    
+    # Calcular promedio semanal
+    promedio_semanal = crecimiento_semanal['TOTAL'].mean()
+    crecimiento_semanal['Promedio'] = promedio_semanal
+    crecimiento_semanal['Estado_Promedio'] = crecimiento_semanal['TOTAL'].apply(
+        lambda x: 'Arriba del Promedio' if x >= promedio_semanal else 'Bajo el Promedio'
+    )
     
     return crecimiento_semanal
 
@@ -3043,7 +3057,7 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
             df_crecimiento = get_crecimiento_ventas(asesor_seleccionado, mes)
             
             if not df_crecimiento.empty:
-                # Gráfico de línea de crecimiento acumulado
+                # Gráfico de línea de crecimiento acumulado CON PROMEDIO
                 fig_crecimiento = go.Figure()
                 
                 # Línea de total acumulado
@@ -3067,7 +3081,7 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                 ))
                 
                 fig_crecimiento.update_layout(
-                    title=f"Crecimiento de Ventas por Día - {mes}",
+                    title=f"Crecimiento Acumulado de Ventas por Día - {mes}",
                     xaxis_title="Fecha",
                     yaxis_title="Cantidad Acumulada",
                     height=400,
@@ -3078,6 +3092,44 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                 )
                 
                 st.plotly_chart(fig_crecimiento, use_container_width=True)
+                
+                # Gráfico de barras: Desempeño diario vs promedio
+                promedio_diario = df_crecimiento['TOTAL'].mean()
+                colores_barras = ['#4caf50' if x >= promedio_diario else '#ff6b6b' for x in df_crecimiento['TOTAL']]
+                
+                fig_desempeño = go.Figure(data=[
+                    go.Bar(
+                        x=df_crecimiento['Fecha'],
+                        y=df_crecimiento['TOTAL'],
+                        marker=dict(color=colores_barras),
+                        name='Ventas del Día',
+                        text=df_crecimiento['TOTAL'],
+                        textposition='auto'
+                    )
+                ])
+                
+                # Agregar línea de promedio
+                fig_desempeño.add_hline(
+                    y=promedio_diario,
+                    line_dash="dash",
+                    line_color="orange",
+                    annotation_text=f"Promedio: {promedio_diario:.1f}",
+                    annotation_position="right"
+                )
+                
+                fig_desempeño.update_layout(
+                    title=f"Desempeño Diario vs Promedio - {mes}",
+                    xaxis_title="Fecha",
+                    yaxis_title="Ventas del Día",
+                    height=400,
+                    hovermode='x unified',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                    yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                    showlegend=False
+                )
+                
+                st.plotly_chart(fig_desempeño, use_container_width=True)
                 
                 # Mostrar indicadores de crecimiento
                 if len(df_crecimiento) > 1:
@@ -3093,13 +3145,24 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                     else:
                         velocidad_reciente = df_crecimiento['TOTAL'].mean()
                     
+                    # Contar días arriba y bajo promedio
+                    dias_arriba = len(df_crecimiento[df_crecimiento['TOTAL'] >= promedio_diario])
+                    dias_bajo = len(df_crecimiento[df_crecimiento['TOTAL'] < promedio_diario])
+                    
                     col_crec1, col_crec2, col_crec3 = st.columns(3)
                     with col_crec1:
                         st.metric("Crecimiento Total", f"+{crecimiento_total:.0f} ventas")
                     with col_crec2:
-                        st.metric("Promedio Diario", f"{crecimiento_promedio_diario:.1f} ventas/día")
+                        st.metric("Promedio Diario", f"{promedio_diario:.1f} ventas/día")
                     with col_crec3:
                         st.metric("Velocidad Reciente", f"{velocidad_reciente:.1f} ventas/día")
+                    
+                    # Segunda fila de métricas
+                    col_crec4, col_crec5 = st.columns(2)
+                    with col_crec4:
+                        st.metric("🟢 Días Arriba del Promedio", f"{dias_arriba}/{dias_trabajados}")
+                    with col_crec5:
+                        st.metric("🔴 Días Bajo el Promedio", f"{dias_bajo}/{dias_trabajados}")
             else:
                 st.info("No hay datos de crecimiento por día para este mes")
         
@@ -3132,7 +3195,7 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                 ))
                 
                 fig_crecimiento_semanal.update_layout(
-                    title=f"Crecimiento de Ventas por Semana - {mes}",
+                    title=f"Crecimiento Acumulado de Ventas por Semana - {mes}",
                     xaxis_title="Semana",
                     yaxis_title="Cantidad Acumulada",
                     height=400,
@@ -3143,6 +3206,44 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                 )
                 
                 st.plotly_chart(fig_crecimiento_semanal, use_container_width=True)
+                
+                # Gráfico de barras: Desempeño semanal vs promedio
+                promedio_semanal = df_crecimiento_semanal['TOTAL'].mean()
+                colores_barras_sem = ['#4caf50' if x >= promedio_semanal else '#ff6b6b' for x in df_crecimiento_semanal['TOTAL']]
+                
+                fig_desempeño_sem = go.Figure(data=[
+                    go.Bar(
+                        x=df_crecimiento_semanal['Semana'],
+                        y=df_crecimiento_semanal['TOTAL'],
+                        marker=dict(color=colores_barras_sem),
+                        name='Ventas de la Semana',
+                        text=df_crecimiento_semanal['TOTAL'],
+                        textposition='auto'
+                    )
+                ])
+                
+                # Agregar línea de promedio
+                fig_desempeño_sem.add_hline(
+                    y=promedio_semanal,
+                    line_dash="dash",
+                    line_color="orange",
+                    annotation_text=f"Promedio: {promedio_semanal:.1f}",
+                    annotation_position="right"
+                )
+                
+                fig_desempeño_sem.update_layout(
+                    title=f"Desempeño Semanal vs Promedio - {mes}",
+                    xaxis_title="Semana",
+                    yaxis_title="Ventas de la Semana",
+                    height=400,
+                    hovermode='x unified',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                    yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                    showlegend=False
+                )
+                
+                st.plotly_chart(fig_desempeño_sem, use_container_width=True)
                 
                 # Mostrar indicadores de crecimiento semanal
                 if len(df_crecimiento_semanal) > 1:
@@ -3155,13 +3256,24 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
                     # Velocidad más reciente (última semana)
                     velocidad_semana_actual = df_crecimiento_semanal['TOTAL'].iloc[-1]
                     
+                    # Contar semanas arriba y bajo promedio
+                    semanas_arriba = len(df_crecimiento_semanal[df_crecimiento_semanal['TOTAL'] >= promedio_semanal])
+                    semanas_bajo = len(df_crecimiento_semanal[df_crecimiento_semanal['TOTAL'] < promedio_semanal])
+                    
                     col_sem1, col_sem2, col_sem3 = st.columns(3)
                     with col_sem1:
                         st.metric("Crecimiento Total", f"+{crecimiento_total_sem:.0f} ventas")
                     with col_sem2:
-                        st.metric("Promedio Semanal", f"{crecimiento_promedio_semanal:.1f} ventas/semana")
+                        st.metric("Promedio Semanal", f"{promedio_semanal:.1f} ventas/semana")
                     with col_sem3:
                         st.metric("Semana Actual", f"{velocidad_semana_actual:.0f} ventas")
+                    
+                    # Segunda fila de métricas
+                    col_sem4, col_sem5 = st.columns(2)
+                    with col_sem4:
+                        st.metric("🟢 Semanas Arriba del Promedio", f"{semanas_arriba}/{semanas_trabajadas}")
+                    with col_sem5:
+                        st.metric("🔴 Semanas Bajo el Promedio", f"{semanas_bajo}/{semanas_trabajadas}")
             else:
                 st.info("No hay datos de crecimiento por semana para este mes")
         
