@@ -1278,6 +1278,57 @@ def get_crecimiento_ventas(asesor, mes_seleccionado="Marzo"):
     return crecimiento
 
 @st.cache_data(ttl=3600)
+def get_crecimiento_ventas_semanal(asesor, mes_seleccionado="Marzo"):
+    """Obtiene el crecimiento acumulado agrupado por semana (DO-LU-MA-MI-JU-VI-SA)"""
+    df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
+    
+    if df_asesor.empty:
+        return pd.DataFrame()
+    
+    df_asesor['FECHA'] = pd.to_datetime(df_asesor['FECHA'], errors='coerce')
+    df_asesor['ESTADO'] = df_asesor['ESTADO'].astype(str).str.strip()
+    
+    # Calcular número de semana basado en el día del mes (semana 1: 1-7, semana 2: 8-14, etc.)
+    df_asesor['NUM_SEMANA'] = ((df_asesor['FECHA'].dt.day - 1) // 7) + 1
+    
+    # Crear etiqueta descriptiva para cada semana
+    def get_semana_label(row):
+        day = row['FECHA'].day
+        if day <= 7:
+            return f"Semana 1 (1-7)"
+        elif day <= 14:
+            return f"Semana 2 (8-14)"
+        elif day <= 21:
+            return f"Semana 3 (15-21)"
+        else:
+            return f"Semana 4 (22-31)"
+    
+    df_asesor['LABEL_SEMANA'] = df_asesor.apply(get_semana_label, axis=1)
+    
+    # Contar ventas semanales por tipo
+    ventas_semanales = df_asesor.groupby(['NUM_SEMANA', 'LABEL_SEMANA', 'ESTADO']).size().unstack(fill_value=0)
+    
+    # Calcular acumuladas
+    crecimiento_semanal = pd.DataFrame()
+    crecimiento_semanal['Semana'] = ventas_semanales.index.get_level_values('LABEL_SEMANA')
+    
+    # Usar columnas si existen, sino 0
+    instaladas = ventas_semanales['INSTALADO'].values if 'INSTALADO' in ventas_semanales.columns else np.zeros(len(ventas_semanales))
+    canceladas = ventas_semanales['CANCELADO'].values if 'CANCELADO' in ventas_semanales.columns else np.zeros(len(ventas_semanales))
+    pendientes = ventas_semanales['PENDIENTE'].values if 'PENDIENTE' in ventas_semanales.columns else np.zeros(len(ventas_semanales))
+    
+    crecimiento_semanal['TOTAL'] = instaladas + canceladas + pendientes
+    crecimiento_semanal['Instaladas'] = instaladas
+    crecimiento_semanal['Canceladas'] = canceladas
+    crecimiento_semanal['Pendientes'] = pendientes
+    
+    # Calcular acumuladas
+    crecimiento_semanal['Total Acumulado'] = crecimiento_semanal['TOTAL'].cumsum()
+    crecimiento_semanal['Instaladas Acumuladas'] = crecimiento_semanal['Instaladas'].cumsum()
+    
+    return crecimiento_semanal
+
+@st.cache_data(ttl=3600)
 def get_drive_tendencias(asesor, mes_seleccionado="Marzo"):
     """Analiza tendencias de ventas semana a semana"""
     df_asesor = get_drive_history_by_asesor(asesor, mes_seleccionado)
@@ -2984,68 +3035,135 @@ if df_drive_mes_actual is not None and not df_drive_mes_actual.empty:
         # FILA 2C: GRÁFICA DE CRECIMIENTO DE VENTAS
         st.markdown("#### 📈 Crecimiento de Ventas por Fecha")
         
-        df_crecimiento = get_crecimiento_ventas(asesor_seleccionado, mes)
+        # Tabs para seleccionar vista por Día o Semana
+        tab_dia, tab_semana = st.tabs(["📅 Por Día", "📊 Por Semana"])
         
-        if not df_crecimiento.empty:
-            # Gráfico de línea de crecimiento acumulado
-            fig_crecimiento = go.Figure()
+        # TAB 1: Visualización por Día
+        with tab_dia:
+            df_crecimiento = get_crecimiento_ventas(asesor_seleccionado, mes)
             
-            # Línea de total acumulado
-            fig_crecimiento.add_trace(go.Scatter(
-                x=df_crecimiento['Fecha'],
-                y=df_crecimiento['Total Acumulado'],
-                mode='lines+markers',
-                name='Total Acumulado',
-                line=dict(color='#1976d2', width=3),
-                marker=dict(size=8)
-            ))
-            
-            # Línea de instaladas acumuladas
-            fig_crecimiento.add_trace(go.Scatter(
-                x=df_crecimiento['Fecha'],
-                y=df_crecimiento['Instaladas Acumuladas'],
-                mode='lines+markers',
-                name='Instaladas Acumuladas',
-                line=dict(color='#4caf50', width=2, dash='dash'),
-                marker=dict(size=6)
-            ))
-            
-            fig_crecimiento.update_layout(
-                title=f"Crecimiento de Ventas - {mes}",
-                xaxis_title="Fecha",
-                yaxis_title="Cantidad Acumulada",
-                height=400,
-                hovermode='x unified',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
-                yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray')
-            )
-            
-            st.plotly_chart(fig_crecimiento, use_container_width=True)
-            
-            # Mostrar indicadores de crecimiento
-            if len(df_crecimiento) > 1:
-                inicio = df_crecimiento['Total Acumulado'].iloc[0]
-                fin = df_crecimiento['Total Acumulado'].iloc[-1]
-                crecimiento_total = fin - inicio
-                dias_trabajados = len(df_crecimiento)
-                crecimiento_promedio_diario = crecimiento_total / dias_trabajados if dias_trabajados > 0 else 0
+            if not df_crecimiento.empty:
+                # Gráfico de línea de crecimiento acumulado
+                fig_crecimiento = go.Figure()
                 
-                # Calcular velocidad reciente (últimos 3 días)
-                if len(df_crecimiento) >= 3:
-                    velocidad_reciente = df_crecimiento['TOTAL'].iloc[-3:].mean()
-                else:
-                    velocidad_reciente = df_crecimiento['TOTAL'].mean()
+                # Línea de total acumulado
+                fig_crecimiento.add_trace(go.Scatter(
+                    x=df_crecimiento['Fecha'],
+                    y=df_crecimiento['Total Acumulado'],
+                    mode='lines+markers',
+                    name='Total Acumulado',
+                    line=dict(color='#1976d2', width=3),
+                    marker=dict(size=8)
+                ))
                 
-                col_crec1, col_crec2, col_crec3 = st.columns(3)
-                with col_crec1:
-                    st.metric("Crecimiento Total", f"+{crecimiento_total:.0f} ventas")
-                with col_crec2:
-                    st.metric("Promedio Diario", f"{crecimiento_promedio_diario:.1f} ventas/día")
-                with col_crec3:
-                    st.metric("Velocidad Reciente", f"{velocidad_reciente:.1f} ventas/día")
-        else:
-            st.info("No hay datos de crecimiento para este mes")
+                # Línea de instaladas acumuladas
+                fig_crecimiento.add_trace(go.Scatter(
+                    x=df_crecimiento['Fecha'],
+                    y=df_crecimiento['Instaladas Acumuladas'],
+                    mode='lines+markers',
+                    name='Instaladas Acumuladas',
+                    line=dict(color='#4caf50', width=2, dash='dash'),
+                    marker=dict(size=6)
+                ))
+                
+                fig_crecimiento.update_layout(
+                    title=f"Crecimiento de Ventas por Día - {mes}",
+                    xaxis_title="Fecha",
+                    yaxis_title="Cantidad Acumulada",
+                    height=400,
+                    hovermode='x unified',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                    yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray')
+                )
+                
+                st.plotly_chart(fig_crecimiento, use_container_width=True)
+                
+                # Mostrar indicadores de crecimiento
+                if len(df_crecimiento) > 1:
+                    inicio = df_crecimiento['Total Acumulado'].iloc[0]
+                    fin = df_crecimiento['Total Acumulado'].iloc[-1]
+                    crecimiento_total = fin - inicio
+                    dias_trabajados = len(df_crecimiento)
+                    crecimiento_promedio_diario = crecimiento_total / dias_trabajados if dias_trabajados > 0 else 0
+                    
+                    # Calcular velocidad reciente (últimos 3 días)
+                    if len(df_crecimiento) >= 3:
+                        velocidad_reciente = df_crecimiento['TOTAL'].iloc[-3:].mean()
+                    else:
+                        velocidad_reciente = df_crecimiento['TOTAL'].mean()
+                    
+                    col_crec1, col_crec2, col_crec3 = st.columns(3)
+                    with col_crec1:
+                        st.metric("Crecimiento Total", f"+{crecimiento_total:.0f} ventas")
+                    with col_crec2:
+                        st.metric("Promedio Diario", f"{crecimiento_promedio_diario:.1f} ventas/día")
+                    with col_crec3:
+                        st.metric("Velocidad Reciente", f"{velocidad_reciente:.1f} ventas/día")
+            else:
+                st.info("No hay datos de crecimiento por día para este mes")
+        
+        # TAB 2: Visualización por Semana
+        with tab_semana:
+            df_crecimiento_semanal = get_crecimiento_ventas_semanal(asesor_seleccionado, mes)
+            
+            if not df_crecimiento_semanal.empty:
+                # Gráfico de línea de crecimiento semanal acumulado
+                fig_crecimiento_semanal = go.Figure()
+                
+                # Línea de total acumulado semanal
+                fig_crecimiento_semanal.add_trace(go.Scatter(
+                    x=df_crecimiento_semanal['Semana'],
+                    y=df_crecimiento_semanal['Total Acumulado'],
+                    mode='lines+markers',
+                    name='Total Acumulado',
+                    line=dict(color='#1976d2', width=3),
+                    marker=dict(size=10)
+                ))
+                
+                # Línea de instaladas acumuladas semanal
+                fig_crecimiento_semanal.add_trace(go.Scatter(
+                    x=df_crecimiento_semanal['Semana'],
+                    y=df_crecimiento_semanal['Instaladas Acumuladas'],
+                    mode='lines+markers',
+                    name='Instaladas Acumuladas',
+                    line=dict(color='#4caf50', width=2, dash='dash'),
+                    marker=dict(size=8)
+                ))
+                
+                fig_crecimiento_semanal.update_layout(
+                    title=f"Crecimiento de Ventas por Semana - {mes}",
+                    xaxis_title="Semana",
+                    yaxis_title="Cantidad Acumulada",
+                    height=400,
+                    hovermode='x unified',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                    yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray')
+                )
+                
+                st.plotly_chart(fig_crecimiento_semanal, use_container_width=True)
+                
+                # Mostrar indicadores de crecimiento semanal
+                if len(df_crecimiento_semanal) > 1:
+                    inicio_sem = df_crecimiento_semanal['Total Acumulado'].iloc[0]
+                    fin_sem = df_crecimiento_semanal['Total Acumulado'].iloc[-1]
+                    crecimiento_total_sem = fin_sem - inicio_sem
+                    semanas_trabajadas = len(df_crecimiento_semanal)
+                    crecimiento_promedio_semanal = crecimiento_total_sem / semanas_trabajadas if semanas_trabajadas > 0 else 0
+                    
+                    # Velocidad más reciente (última semana)
+                    velocidad_semana_actual = df_crecimiento_semanal['TOTAL'].iloc[-1]
+                    
+                    col_sem1, col_sem2, col_sem3 = st.columns(3)
+                    with col_sem1:
+                        st.metric("Crecimiento Total", f"+{crecimiento_total_sem:.0f} ventas")
+                    with col_sem2:
+                        st.metric("Promedio Semanal", f"{crecimiento_promedio_semanal:.1f} ventas/semana")
+                    with col_sem3:
+                        st.metric("Semana Actual", f"{velocidad_semana_actual:.0f} ventas")
+            else:
+                st.info("No hay datos de crecimiento por semana para este mes")
         
         # FILA 3: RECOMENDACIONES PERSONALIZADAS
         st.markdown("#### 💡 Recomendaciones Personalizadas")
